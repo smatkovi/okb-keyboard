@@ -263,8 +263,20 @@ Item {
         }
 
         SilicaPrivate.GlassBackground {
-            width: keyboard.width
+            id: currentLayoutBackground
+            width: keyboard.width + _layoutRow.switchTransitionPadding
             height: inputItems.effectiveHeight
+            x: (_layoutRow.layout ? _layoutRow.layout.x : 0) - _layoutRow.switchTransitionPadding / 2
+            anchors.bottom: parent.bottom
+            opacity: inputItems.opacity
+        }
+
+        SilicaPrivate.GlassBackground {
+            id: newLayoutBackground
+            width: keyboard.width + _layoutRow.switchTransitionPadding
+            visible: _layoutRow.nextLoader && _layoutRow.nextLoader.item && _layoutRow.nextLoader.item.visible
+            height: visible ? _layoutRow.nextLoader.item.height : 0
+            x: (visible ? _layoutRow.nextLoader.item.x : 0) - _layoutRow.switchTransitionPadding / 2
             anchors.bottom: parent.bottom
             opacity: inputItems.opacity
         }
@@ -274,8 +286,7 @@ Item {
             width: keyboard.width
             anchors.bottom: parent.bottom
 
-            // column height doesn't instantly change when topItem changes. workaround by calculating height ourselves
-            property int effectiveHeight: keyboard.height + (topItem.item && topItem.visible ? topItem.item.height : 0)
+            property int effectiveHeight: keyboard.height
 
             onEffectiveHeightChanged: {
                 if (!showAnimation.running) {
@@ -292,26 +303,6 @@ Item {
             }
 	    /* --- okboard end --- */
 
-            // FIXME: don't unload item when changing temporarily to basic handler
-            Loader {
-                id: topItem
-		/* okboard remove
-                sourceComponent: keyboard.inputHandler && layoutRow.layout && layoutRow.layout.useTopItem
-                                 ? keyboard.inputHandler.topItem : null
-		*/
-		/* --- okboard begin --- */
-		// this is ridiculously unreadable but does not work from a function
-		sourceComponent: (layoutRow.layout && !layoutRow.layout.splitActive)?(
-		    (keyboard.curvepreedit || keyboard.curveerror)?curvePredictionList:(
-			keyboard.inputHandler?keyboard.inputHandler.topItem:null
-		    )
-		):null;
-		/* --- okboard end --- */
-
-                width: parent.width
-                visible: item !== null
-            }
-
             CurveKeyboardBase {
                 id: keyboard
 
@@ -324,6 +315,7 @@ Item {
                 property int overrideContentType: -1
                 property string overriddenLayoutFile
                 property alias splitEnabled: splitConfig.value
+                property alias transitionRunning: _layoutRow.transitionRunning
 
                 width: root.width
                 portraitMode: portraitLayout
@@ -336,7 +328,7 @@ Item {
 		/* okboard remove
                 thresholdX: swipeGestureIsSafe ? (Theme.startDragDistance * 4.0) : (Theme.startDragDistance * 6.0)
                 thresholdY: Theme.startDragDistance * 1.8
-                swipeEnabled: layoutChangeAllowed && (canvas.layoutModel.enabledCount > 1)
+                swipeEnabled: layoutChangeAllowed && (canvas.layoutModel.enabledCount > 1) && !!layout && layout.allowSwipeGesture
                 allowedDirections: SwipeGestureArea.DirectionLeft | SwipeGestureArea.DirectionRight
                 onSwipeAmountChanged: {
                     if (gestureInProgress) {
@@ -471,6 +463,38 @@ Item {
 		    keyboard.updateCurveContext() // okboard
                 }
 
+                function getInputHandler(layout) {
+                    var layoutModelItem = layoutModel.get(layout.layoutIndex)
+                    if (layoutModelItem === null) {
+                        console.warn("could not find layout model item for layout index:", layout.layoutIndex)
+                        return
+                    }
+
+                    var handler = layoutModelItem.handler
+                    var advancedInputHandler =  _layoutModel.inputHandlers[handler]
+
+                    if (typeof(advancedInputHandler) === "undefined") {
+                        console.warn("invalid inputhandler for " + handler + ", forcing paste input handler")
+                        advancedInputHandler = pasteInputHandler
+                    }
+
+                    if (handler === "") {
+                        return pasteInputHandler
+                    } else if (layout && layout.type === "") {
+                        // non-composing
+                        if (MInputMethodQuick.contentType === Maliit.FreeTextContentType
+                                && !MInputMethodQuick.hiddenText
+                                && MInputMethodQuick.predictionEnabled) {
+                            return advancedInputHandler
+                        } else {
+                            return pasteInputHandler
+                        }
+                    } else {
+                        // composing
+                        return advancedInputHandler
+                    }
+                }
+
                 function updateInputHandler() {
                     var previousInputHandler = inputHandler
 
@@ -479,30 +503,7 @@ Item {
                         inputHandler = basicInputHandler
 
                     } else {
-                        var handler = layoutModel.get(canvas.activeIndex).handler
-                        var advancedInputHandler =  _layoutModel.inputHandlers[handler]
-                        var _layout = _layoutRow.layout
-
-                        if (advancedInputHandler == undefined) {
-                            console.warn("invalid inputhandler for " + handler + ", forcing paste input handler")
-                            advancedInputHandler = pasteInputHandler
-                        }
-
-                        if (handler === "") {
-                            inputHandler = pasteInputHandler
-                        } else if (_layout && _layout.type == "") {
-                            // non-composing
-                            if (MInputMethodQuick.contentType === Maliit.FreeTextContentType
-                                    && !MInputMethodQuick.hiddenText
-                                    && MInputMethodQuick.predictionEnabled) {
-                                inputHandler = advancedInputHandler
-                            } else {
-                                inputHandler = pasteInputHandler
-                            }
-                        } else {
-                            // composing
-                            inputHandler = advancedInputHandler
-                        }
+                        inputHandler = getInputHandler(_layoutRow.layout)
                     }
 
                     if ((previousInputHandler !== inputHandler) && previousInputHandler) {
@@ -655,8 +656,11 @@ Item {
                         keyboard.cancelGesture()
                     }
 
-                    // Unload neighbours of current layout to save memory
-                    _layoutRow.updateLoaders([canvas.activeIndex])
+                    // Unload neighbours of current layout to save memory,
+                    // but prevent crash by avoid doing it while transition is running.
+                    if (!_layoutRow.transitionRunning) {
+                        _layoutRow.updateLoaders([canvas.activeIndex])
+                    }
                 }
             }
         }

@@ -1,0 +1,333 @@
+--- /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml	2018-12-06 06:11:41.000000000 +0100
++++ qml/eu/cpbm/okboard/CurveKeyboardBase.qml	2018-11-13 19:04:54.447173624 +0100
+@@ -34,7 +34,11 @@
+ import org.nemomobile.configuration 1.0
+ import "touchpointarray.js" as ActivePoints
+ 
+-SwipeGestureArea {
++import eu.cpbm.okboard 1.0 // okboard
++import com.jolla 1.0 // okboard
++import "curves.js" as InProgress // okboard
++
++Item { // <- okboard replace SwipeGestureArea (we are doing our own swipe handling)
+     id: keyboard
+ 
+     property Item layout
+@@ -69,6 +73,22 @@
+     property bool closeSwipeActive
+     property int closeSwipeThreshold: Math.max(height*.3, Theme.itemSizeSmall)
+ 
++    /* --- okboard begin --- */
++    property bool inCurve
++    property int curveLastX
++    property int curveLastY
++    property int curveStartX
++    property int curveStartY
++    property bool disablePopper
++    property bool curvepreedit: curve.curvepreedit  // just a proxy
++    property string curveerror: curve.errormsg // proxy
++    property double scaling_ratio: curve.scaling_ratio // idem
++    property string wpm: curve.wpm // idem
++    property string preedit: inputHandler.preedit?inputHandler.preedit:""
++    property int curveCount
++    property int curveIndex
++    /* --- okboard end --- */
++
+     property QtObject nextLayoutAttributes: QtObject {
+         property bool isShifted
+         property bool inSymView
+@@ -143,6 +163,16 @@
+         onTriggered: applyAutocaps()
+     }
+ 
++    /* --- okboard begin --- */
++    Timer {
++        id: curveDisableTimer
++        interval: 400  // a bit smaller than Popper timer to make sure curve is disabled when selecting an item in the Popper
++        onTriggered: {
++            resetCurve()
++        }
++    }
++    /* --- okboard end --- */
++
+     QuickPick {
+         id: quickPick
+     }
+@@ -175,6 +205,15 @@
+         defaultValue: false
+     }
+ 
++    /* --- okboard begin --- */
++    Gribouille {
++        id: curve
++        opacity: 1
++        anchors.fill: parent
++    }
++    /* --- okboard end --- */
++
++
+     MouseArea {
+         enabled: useMouseEvents.value
+         anchors.fill: parent
+@@ -211,10 +250,13 @@
+         silenceFeedback = false
+         pressTimer.start()
+ 
++	/* okboard remove
+         for (var i = 0; i < touchPoints.length; i++) {
+             var point = ActivePoints.addPoint(touchPoints[i])
+             updatePressedKey(point)
+         }
++	*/
++	okbHandlePressed(touchPoints); // okboard
+     }
+ 
+     function handleUpdated(touchPoints) {
+@@ -223,6 +265,8 @@
+             return
+         }
+ 
++	okbHandleUpdated(touchPoints); // okboard
++
+         for (var i = 0; i < touchPoints.length; i++) {
+             var incomingPoint = touchPoints[i]
+             var point = ActivePoints.findById(incomingPoint.pointId)
+@@ -311,6 +355,9 @@
+                 cancelAllTouchPoints()
+                 languageSelectionPopup.hide()
+                 canvas.switchLayout(languageSelectionPopup.activeCell)
++
++		okbHandleReleased1(touchPoints); // okboard
++
+                 return
+             }
+         }
+@@ -346,12 +393,16 @@
+             characterKeyCounter = 0
+         }
+         languageSwitchTimer.stop()
++
++	okbHandleReleased2(touchPoints); // okboard
+     }
+ 
+     function handleCanceled(touchPoints) {
+         for (var i = 0; i < touchPoints.length; i++) {
+             cancelTouchPoint(touchPoints[i].pointId)
+         }
++
++	okbHandleCanceled(touchPoints); // okboard
+     }
+ 
+     function keyAt(x, y) {
+@@ -508,6 +559,8 @@
+     }
+ 
+     function triggerKey(key) {
++	okbTriggerKey(key); // okboard
++
+         if (key.keyType !== KeyType.DeadKey) {
+             inputHandler._handleKeyClick(key)
+         }
+@@ -528,4 +581,202 @@
+             lastPressedKey = pressedKey
+         }
+     }
++
++    /* --- okboard begin --- */
++    // reset curve typing
++    function resetCurve() {
++        curve.reset()
++        inCurve = false
++    }
++
++
++    // send information about layout to curve component
++    function updateCurveContext() {
++        curve.updateContext(canvas.layoutModel.get(layoutRow.loader.index).layout, mode);
++    }
++
++    // curvekb: dump text keys to c++ plugin
++    function dumpKeys() {
++        var lst = keyboard.getTextKeys();
++        curve.loadKeys(lst);
++    }
++
++    // compute keys list w/ coordinates
++    function getTextKeys(item) {
++        if (typeof(item) === 'undefined') { item = layout; }
++        if (! item) { return; }
++        var array_out = new Array;
++
++        if (typeof item.keyType !== 'undefined' && item.enabled === true &&
++	    item.caption && item.caption.length == 1) {
++
++            var key_info = new Object;
++            key_info.x = item.x;
++            key_info.y = item.y;
++            key_info.width = item.width;
++            key_info.height = item.height;
++            key_info.caption = item.caption;
++            array_out.push(key_info);
++            return array_out;
++        }
++
++        for (var i = 0; i < item.children.length; i ++) {
++            var child = item.children[i];
++            var keys = getTextKeys(child);
++            for (var j = 0; j < keys.length; j ++) {
++                var key_info = keys[j];
++                key_info.x += item.x;
++                key_info.y += item.y;
++                array_out.push(key_info);
++            }
++        }
++
++        return array_out;
++    }
++
++    function get_predict_words(callback) {
++        curve.get_predict_words(callback);
++    }
++
++    function commitWord(word) {
++        curve.commitWord(word, true, undefined);
++    }
++
++    function clearError() {
++	curve.clearError();
++    }
++
++    function cancelGesture() {
++	// expose this function because it is called from LanguageSelectionPopup
++    }
++
++
++    /* additional processings for event handlers */
++
++    function okbHandlePressed(touchPoints) {
++        if (! inCurve) {
++            // curve typing: take over multi-touch operations
++
++            for (var i = 0; i < touchPoints.length; i++) {
++                var point = ActivePoints.addPoint(touchPoints[i])
++                updatePressedKey(point, true)
++            }
++        }
++
++        if (curve.ok) {
++            if (! curve.keys_ok) {
++                dumpKeys();
++            }
++
++            for(var i = 0; i < touchPoints.length; i++) {
++                if (! inCurve) {
++                    curveCount = 0;
++                    curveIndex = 0;
++                    inCurve = true;
++                    curve.start()
++
++                    disablePopper = false;
++                    curveDisableTimer.stop();
++                    curveDisableTimer.start();
++                }
++
++                var id = touchPoints[i].pointId;
++
++                var cur = {}
++                cur.curveIndex = curveIndex;
++                cur.curveStartX = cur.curveLastX = touchPoints[i].x;
++                cur.curveStartY = cur.curveLastY = touchPoints[i].y;
++                InProgress.set(id, cur);
++
++                curveIndex++;
++                curveCount++;
++
++                curve.addPoint(touchPoints[i], cur.curveIndex);
++                // var s = "==> Curve start #" + id + " " + touchPoints[i].x + "," + touchPoints[i].y; curve.log(s);
++
++            }
++
++        } else {
++            resetCurve();
++        }
++    }
++
++    function okbHandleUpdated(touchPoints) {
++	if (inCurve) {
++            for(var i = 0; i < touchPoints.length; i++) {
++                var id = touchPoints[i].pointId;
++
++                var point = touchPoints[i];
++                var cur = InProgress.get(id);
++
++                if (Math.abs(point.x - cur.curveLastX) >= 10 * scaling_ratio
++		    || Math.abs(point.y - cur.curveLastY) >= 10 * scaling_ratio) {
++                    curve.addPoint(point, cur.curveIndex);
++                    cur.curveLastX = point.x;
++                    cur.curveLastY = point.y;
++                    // var s = "==> Curve point #" + id + " " + touchPoints[i].x + "," + touchPoints[i].y; curve.log(s);
++                    InProgress.set(id, cur); // needed ?
++                }
++                if (! disablePopper) {
++                    if (Math.abs(point.x - cur.curveStartX) >= 50 * scaling_ratio
++			|| Math.abs(point.y - cur.curveStartY) >= 50 * scaling_ratio
++			|| curveCount >= 2) {
++                        disablePopper = true;
++                        cancelAllTouchPoints();
++                        curveDisableTimer.stop();
++                    }
++                }
++            }
++            if (disablePopper) { return; }
++        }
++    }
++
++    function okbHandleReleased1(touchPoints) {
++	if (languageSelectionPopup.activeCell > 0) {
++            curve.updateContext(canvas.layoutModel.get(languageSelectionPopup.activeCell).layout);
++        }
++    }
++
++    function okbHandleReleased2(touchPoints) {
++        if (inCurve) {
++            for(var i = 0; i < touchPoints.length; i++) {
++                var id = touchPoints[i].pointId;
++                var point = touchPoints[i];
++                var cur = InProgress.get(id);
++
++                // var s = "==> Curve end #" + id + " " + touchPoints[i].x + "," + touchPoints[i].y; curve.log(s);
++                curve.endCurve(cur.curveIndex);
++                curveCount --;
++                InProgress.remove(id);
++            }
++            if (curveCount == 0) {
++                // curve.log("==> Curve completed");
++                curve.done(disablePopper);
++                inCurve = false;
++            }
++        }
++    }
++
++    function okbHandleCanceled(touchPoints) {
++        if (inCurve) {
++            resetCurve();
++        }
++    }
++
++    function okbTriggerKey(key) {
++	if (curve.ok) {
++            if (curve.curvepreedit) {
++		if (key.key === Qt.Key_Backspace) {
++                    // backspace erases a full word inserted by curve typing
++		    curve.backspace();
++		} else if (key.text.length > 0 && key.text >= 'a' && key.text <= 'z') {
++                    // if we type a single letter when in preedit mode caused by curve typing, we insert a space because it's the beginning of a new word
++                    autocaps = false // if the first word was autocaps the new one is not
++                    curve.insertSpace();
++		}
++            }
++	}
++        curve.curvepreedit = false;
++    }
++    /* --- okboard end --- */
+ }
