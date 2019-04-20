@@ -15,3 +15,5 @@ cf.version
 okboard.qml
 tmp
 .git.tar.bz2
+.dir-locals.el
+

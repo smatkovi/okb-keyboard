@@ -18,7 +18,27 @@ usage() {
     echo "           okboard files"
     echo "  apply:   apply patch (argument is release version) to currently installed"
     echo "           jolla keyboard files and replace included source code version"
+    echo "  check:   check patch and source file match for current release"
     exit 255
+}
+
+check() {
+    echo "$FILES" | (
+	local ok=1
+	while read id os mine ; do
+	    [ -n "$id" ] || continue
+	    local patch="patches/${id}-${release}.diff"
+	    if [ ! -f "$patch" ] ; then
+		ok=
+		echo "Missing file: $patch"
+	    elif ! cmp <(tail -n +3 "$patch") <(diff -u "$os" "$mine" | tail -n +3) >/dev/null ; then
+		ok=
+		echo "Mismatching patch: $patch"
+	    fi
+	done
+	[ -n "$ok" ] || die "Patch files are not up to date"
+	echo "OK"
+    )
 }
 
 create() {
@@ -51,5 +71,6 @@ apply() {
 case "$1" in
     create) create ;;
     apply) apply "$2" ;;
+    check) check ;;
     *) usage ;;
 esac

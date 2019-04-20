@@ -778,5 +778,8 @@ Item { // <- okboard replace SwipeGestureArea (we are doing our own swipe handli
 	}
         curve.curvepreedit = false;
     }
+
+    function log(message) { curve.log(message); }
+
     /* --- okboard end --- */
 }

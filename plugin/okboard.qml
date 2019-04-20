@@ -67,6 +67,16 @@ Item {
 
     onPortraitLayoutChanged: keyboard.updateLayoutIfAllowed(true)
 
+    /* --- okboard begin --- */
+    property bool showPredictionList: layoutRow.layout && !layoutRow.layout.splitActive && (keyboard.curvepreedit || keyboard.curveerror)
+    property InputHandler okbSaveInputHandler
+    property Component okbSaveTopItem
+
+    onShowPredictionListChanged: {
+	updateInputHandler();
+    }
+    /* --- okboard end --- */
+
     function updateIMArea() {
         if (!MInputMethodQuick.active)
             return
@@ -463,7 +473,27 @@ Item {
 		    keyboard.updateCurveContext() // okboard
                 }
 
-                function getInputHandler(layout) {
+		function getInputHandler(layout) {
+		    /* --- okboard begin --- */
+		    // replace InputHandler's topItem with my swipe candidate list
+		    var retInputHandler = getInputHandlerOrig(layout)
+		    if (retInputHandler) {
+			if (retInputHandler.topItem != curvePredictionList) {
+			    okbSaveTopItem = retInputHandler.topItem
+			    okbSaveInputHandler = retInputHandler
+			}
+
+			if (showPredictionList) {
+			    retInputHandler.topItem = curvePredictionList
+			} else if (okbSaveTopItem) {
+			    retInputHandler.topItem = okbSaveTopItem
+			}
+		    }
+		    return retInputHandler
+		}
+
+                function getInputHandlerOrig(layout) {
+		    /* --- okboard end --- */
                     var layoutModelItem = layoutModel.get(layout.layoutIndex)
                     if (layoutModelItem === null) {
                         console.warn("could not find layout model item for layout index:", layout.layoutIndex)

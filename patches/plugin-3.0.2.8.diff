@@ -1,5 +1,5 @@
 --- /usr/lib/maliit/plugins/jolla-keyboard.qml	2019-01-19 01:00:00.000000000 +0100
-+++ plugin/okboard.qml	2019-04-06 18:26:29.101351425 +0200
++++ plugin/okboard.qml	2019-04-20 19:33:59.528930521 +0200
 @@ -40,6 +40,8 @@
  import org.nemomobile.dbus 2.0
  import org.nemomobile.systemsettings 1.0
@@ -9,7 +9,24 @@
  Item {
      id: canvas
  
-@@ -292,7 +294,16 @@
+@@ -65,6 +67,16 @@
+ 
+     onPortraitLayoutChanged: keyboard.updateLayoutIfAllowed(true)
+ 
++    /* --- okboard begin --- */
++    property bool showPredictionList: layoutRow.layout && !layoutRow.layout.splitActive && (keyboard.curvepreedit || keyboard.curveerror)
++    property InputHandler okbSaveInputHandler
++    property Component okbSaveTopItem
++
++    onShowPredictionListChanged: {
++	updateInputHandler();
++    }
++    /* --- okboard end --- */
++
+     function updateIMArea() {
+         if (!MInputMethodQuick.active)
+             return
+@@ -292,7 +304,16 @@
                  }
              }
  
@@ -27,7 +44,7 @@
                  id: keyboard
  
                  property bool allowLayoutChanges
-@@ -314,6 +325,7 @@
+@@ -314,6 +335,7 @@
                                                                : (phone_portrait.visible ? phone_portrait
                                                                                          : phone_landscape.item)
                  layoutChangeAllowed: mode === "common"
@@ -35,7 +52,7 @@
                  thresholdX: swipeGestureIsSafe ? (Theme.startDragDistance * 4.0) : (Theme.startDragDistance * 6.0)
                  thresholdY: Theme.startDragDistance * 1.8
                  swipeEnabled: layoutChangeAllowed && (canvas.layoutModel.enabledCount > 1) && !!layout && layout.allowSwipeGesture
-@@ -338,7 +350,8 @@
+@@ -338,7 +360,8 @@
                      if (gestureInProgress) {
                          layoutRow.updateTransitionDirection(getGestureNextLayoutIndex())
                      }
@@ -45,15 +62,39 @@
                  onModeChanged: layoutRow.layout.visible = mode === "common"
  
                  function getGestureNextLayoutIndex() {
-@@ -447,6 +460,7 @@
+@@ -447,9 +470,30 @@
                      }
  
                      updateInputHandler()
 +		    keyboard.updateCurveContext() // okboard
                  }
  
-                 function getInputHandler(layout) {
-@@ -563,8 +577,18 @@
+-                function getInputHandler(layout) {
++		function getInputHandler(layout) {
++		    /* --- okboard begin --- */
++		    // replace InputHandler's topItem with my swipe candidate list
++		    var retInputHandler = getInputHandlerOrig(layout)
++		    if (retInputHandler) {
++			if (retInputHandler.topItem != curvePredictionList) {
++			    okbSaveTopItem = retInputHandler.topItem
++			    okbSaveInputHandler = retInputHandler
++			}
++
++			if (showPredictionList) {
++			    retInputHandler.topItem = curvePredictionList
++			} else if (okbSaveTopItem) {
++			    retInputHandler.topItem = okbSaveTopItem
++			}
++		    }
++		    return retInputHandler
++		}
++
++                function getInputHandlerOrig(layout) {
++		    /* --- okboard end --- */
+                     var layoutModelItem = layoutModel.get(layout.layoutIndex)
+                     if (layoutModelItem === null) {
+                         console.warn("could not find layout model item for layout index:", layout.layoutIndex)
+@@ -563,8 +607,18 @@
                  }
  
                  Loader {
@@ -72,7 +113,7 @@
                      width: geometry.middleBarWidth
                      height: keyboard.height
                      anchors.horizontalCenter: parent.horizontalCenter
-@@ -647,9 +671,11 @@
+@@ -647,9 +701,11 @@
              ScriptAction {
                  script: {
                      // If there is a stuck transition, stop it

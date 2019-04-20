@@ -1,5 +1,5 @@
 --- /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml	2019-03-04 09:34:30.000000000 +0100
-+++ qml/eu/cpbm/okboard/CurveKeyboardBase.qml	2019-04-07 10:01:52.275965000 +0200
++++ qml/eu/cpbm/okboard/CurveKeyboardBase.qml	2019-04-20 18:47:45.967644855 +0200
 @@ -34,7 +34,11 @@
  import org.nemomobile.configuration 1.0
  import "touchpointarray.js" as ActivePoints
@@ -128,7 +128,7 @@
          if (key.keyType !== KeyType.DeadKey) {
              inputHandler._handleKeyClick(key)
          }
-@@ -528,4 +581,202 @@
+@@ -528,4 +581,205 @@
              lastPressedKey = pressedKey
          }
      }
@@ -329,5 +329,8 @@
 +	}
 +        curve.curvepreedit = false;
 +    }
++
++    function log(message) { curve.log(message); }
++
 +    /* --- okboard end --- */
  }
