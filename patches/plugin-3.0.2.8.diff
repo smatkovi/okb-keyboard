@@ -1,5 +1,5 @@
 --- /usr/lib/maliit/plugins/jolla-keyboard.qml	2019-01-19 01:00:00.000000000 +0100
-+++ plugin/okboard.qml	2019-04-20 19:33:59.528930521 +0200
++++ plugin/okboard.qml	2019-04-21 09:55:35.500998957 +0200
 @@ -40,6 +40,8 @@
  import org.nemomobile.dbus 2.0
  import org.nemomobile.systemsettings 1.0
@@ -19,7 +19,7 @@
 +    property Component okbSaveTopItem
 +
 +    onShowPredictionListChanged: {
-+	updateInputHandler();
++	keyboard.updateInputHandler();
 +    }
 +    /* --- okboard end --- */
 +
@@ -62,7 +62,7 @@
                  onModeChanged: layoutRow.layout.visible = mode === "common"
  
                  function getGestureNextLayoutIndex() {
-@@ -447,9 +470,30 @@
+@@ -447,9 +470,32 @@
                      }
  
                      updateInputHandler()
@@ -76,6 +76,8 @@
 +		    var retInputHandler = getInputHandlerOrig(layout)
 +		    if (retInputHandler) {
 +			if (retInputHandler.topItem != curvePredictionList) {
++			    // backup original InputHandler topItem because we will need to revert to this
++			    // one when we no longer need to display the swipe candidate list
 +			    okbSaveTopItem = retInputHandler.topItem
 +			    okbSaveInputHandler = retInputHandler
 +			}
@@ -83,7 +85,7 @@
 +			if (showPredictionList) {
 +			    retInputHandler.topItem = curvePredictionList
 +			} else if (okbSaveTopItem) {
-+			    retInputHandler.topItem = okbSaveTopItem
++			    retInputHandler.topItem = okbSaveTopItem  // revert to original topItem
 +			}
 +		    }
 +		    return retInputHandler
@@ -94,7 +96,7 @@
                      var layoutModelItem = layoutModel.get(layout.layoutIndex)
                      if (layoutModelItem === null) {
                          console.warn("could not find layout model item for layout index:", layout.layoutIndex)
-@@ -563,8 +607,18 @@
+@@ -563,8 +609,18 @@
                  }
  
                  Loader {
@@ -113,7 +115,7 @@
                      width: geometry.middleBarWidth
                      height: keyboard.height
                      anchors.horizontalCenter: parent.horizontalCenter
-@@ -647,9 +701,11 @@
+@@ -647,9 +703,11 @@
              ScriptAction {
                  script: {
                      // If there is a stuck transition, stop it

@@ -73,7 +73,7 @@ Item {
     property Component okbSaveTopItem
 
     onShowPredictionListChanged: {
-	updateInputHandler();
+	keyboard.updateInputHandler();
     }
     /* --- okboard end --- */
 
@@ -479,6 +479,8 @@ Item {
 		    var retInputHandler = getInputHandlerOrig(layout)
 		    if (retInputHandler) {
 			if (retInputHandler.topItem != curvePredictionList) {
+			    // backup original InputHandler topItem because we will need to revert to this
+			    // one when we no longer need to display the swipe candidate list
 			    okbSaveTopItem = retInputHandler.topItem
 			    okbSaveInputHandler = retInputHandler
 			}
@@ -486,7 +488,7 @@ Item {
 			if (showPredictionList) {
 			    retInputHandler.topItem = curvePredictionList
 			} else if (okbSaveTopItem) {
-			    retInputHandler.topItem = okbSaveTopItem
+			    retInputHandler.topItem = okbSaveTopItem  // revert to original topItem
 			}
 		    }
 		    return retInputHandler
