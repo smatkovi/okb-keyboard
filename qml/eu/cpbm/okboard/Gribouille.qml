@@ -565,6 +565,9 @@ Canvas {
             // (this seems to be the same behavior as the standard Jolla keyboard when selecting a word in prediction bar)
             // (i don't like it, but it is the "least bad" solution at the moment)
             text = text + ' '
+
+	    // and disable preedit (which only adds confusion)
+	    preedit_ok = false
         }
 
 	var char_count = 0;
