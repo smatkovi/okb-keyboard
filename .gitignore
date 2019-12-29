@@ -1,4 +1,3 @@
-.UNISON*
 touchpointarray.js
 libcurveplugin.so
 predict.py
@@ -8,12 +7,8 @@ __pycache__
 okboard-settings
 build
 okboard.cf
-.ropeproject
 Makefile
 db.version
 cf.version
 okboard.qml
 tmp
-.git.tar.bz2
-.dir-locals.el
-
