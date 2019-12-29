@@ -279,6 +279,9 @@ Item {
             x: (_layoutRow.layout ? _layoutRow.layout.x : 0) - _layoutRow.switchTransitionPadding / 2
             anchors.bottom: parent.bottom
             opacity: inputItems.opacity
+            color: Theme.colorScheme == Theme.LightOnDark
+                   ? Theme.rgba(palette.highlightDimmerColor, 1.0)
+                   : Qt.lighter(Theme.rgba(palette.highlightDimmerColor, 1.0), 1.5)
         }
 
         SilicaPrivate.GlassBackground {
@@ -289,6 +292,7 @@ Item {
             x: (visible ? _layoutRow.nextLoader.item.x : 0) - _layoutRow.switchTransitionPadding / 2
             anchors.bottom: parent.bottom
             opacity: inputItems.opacity
+            color: currentLayoutBackground.color
         }
 
         Column {
@@ -316,6 +320,9 @@ Item {
             CurveKeyboardBase {
                 id: keyboard
 
+                property color popperBackgroundColor: Theme.colorScheme === Theme.LightOnDark
+                                                      ? Qt.darker(Theme.highlightBackgroundColor, 1.2)
+                                                      : Qt.lighter(Theme.highlightBackgroundColor, 1.4)
                 property bool allowLayoutChanges
                 property string mode: "common"
 
@@ -625,6 +632,25 @@ Item {
                     height: keyboard.height
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: item !== null && !layoutRow.transitionRunning
+                }
+
+                KeyboardLayoutSwitchHint {
+                    id: switchHint
+                    enabled: keyboard.layout && (keyboard.layout.type !== "hwr") && keyboard.swipeEnabled
+                    onFinished: closeHintDate.value = Date.now() / 1000 + (2 * 24 * 3600) // Set the close hint date 2 days from now
+                    onActiveChanged: if (active) closeHintDate.value = 0 // Clear the other hint when this one is active
+                }
+
+                KeyboardCloseHint {
+                    enabled: !switchHint.active && keyboard.layout && (keyboard.layout.type !== "hwr")
+                             && (closeHintDate.value > 0) && (Date.now() / 1000 >= closeHintDate.value)
+                    onFinished: closeHintDate.value = 0
+
+                    ConfigurationValue {
+                        id: closeHintDate
+                        key: "/sailfish/text_input/close_keyboard_hint_date"
+                        defaultValue: 0
+                    }
                 }
             }
         }
