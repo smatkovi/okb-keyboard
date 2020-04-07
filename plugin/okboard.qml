@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2011 Nokia Corporation and/or its subsidiary(-ies). All rights reserved.
- * Copyright (C) 2012-2013 Jolla Ltd.
+ * Copyright (c) 2012 - 2020 Jolla Ltd.
+ * Copyright (c) 2020 Open Mobile Platform LLC.
  *
  * Contact: Pekka Vuorela <pekka.vuorela@jollamobile.com>
  *
@@ -135,6 +136,13 @@ Item {
         service: "com.jolla.keyboard"
         path: "/com/jolla/keyboard"
         iface: "com.jolla.keyboard"
+        xml: "\t<interface name=\"com.jolla.keyboard\">\n" +
+             "\t\t<method name=\"clearData\">\n" +
+             "\t\t</method>\n" +
+             "\t\t<signal name=\"keyboardHeightChanged\">\n" +
+             "\t\t\t<arg name=\"keyboardHeight\" type=\"f\" direction=\"out\"/>\n" +
+             "\t\t</signal>\n" +
+             "\t</interface>\n"
 
         function clearData() {
             console.log("got clear data request from dbus")
@@ -143,6 +151,10 @@ Item {
             _layoutModel.updateInputHandlers()
             keyboard.inputHandler = basicInputHandler // just to make sure
         }
+
+        // JB#48766: Move keyboard geometry API to Maliit
+        readonly property real keyboardHeight: keyboard.fullyOpen ? keyboard.height : 0.0
+        onKeyboardHeightChanged: emitSignal("keyboardHeightChanged", [keyboardHeight])
     }
 
     ProfileControl { id: soundSettings}
@@ -277,7 +289,7 @@ Item {
             width: keyboard.width + _layoutRow.switchTransitionPadding
             height: inputItems.effectiveHeight
             x: (_layoutRow.layout ? _layoutRow.layout.x : 0) - _layoutRow.switchTransitionPadding / 2
-            anchors.bottom: parent.bottom
+            anchors.bottom: parent.top
             opacity: inputItems.opacity
             color: Theme.colorScheme == Theme.LightOnDark
                    ? Theme.rgba(palette.highlightDimmerColor, 1.0)
@@ -290,7 +302,7 @@ Item {
             visible: _layoutRow.nextLoader && _layoutRow.nextLoader.item && _layoutRow.nextLoader.item.visible
             height: visible ? _layoutRow.nextLoader.item.height : 0
             x: (visible ? _layoutRow.nextLoader.item.x : 0) - _layoutRow.switchTransitionPadding / 2
-            anchors.bottom: parent.bottom
+            anchors.bottom: parent.top
             opacity: inputItems.opacity
             color: currentLayoutBackground.color
         }
@@ -298,7 +310,7 @@ Item {
         Column {
             id: inputItems
             width: keyboard.width
-            anchors.bottom: parent.bottom
+            anchors.bottom: parent.top
 
             property int effectiveHeight: keyboard.height
 
@@ -636,7 +648,7 @@ Item {
 
                 KeyboardLayoutSwitchHint {
                     id: switchHint
-                    enabled: keyboard.layout && (keyboard.layout.type !== "hwr") && keyboard.swipeEnabled
+                    enabled: keyboard.layout && (keyboard.layout.type !== "hwr") // okboard remove : && keyboard.swipeEnabled
                     onFinished: closeHintDate.value = Date.now() / 1000 + (2 * 24 * 3600) // Set the close hint date 2 days from now
                     onActiveChanged: if (active) closeHintDate.value = 0 // Clear the other hint when this one is active
                 }

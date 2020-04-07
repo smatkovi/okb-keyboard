@@ -1,6 +1,6 @@
 Name:       okboard-full
 Summary:    OKboard (Jolla magic keyboard)
-Version:    0.6.20
+Version:    0.6.21
 Release:    1
 Group:      System/GUI/Other
 License:    BSD-like + LGPLv2.1
@@ -11,7 +11,7 @@ Source2:    okb-lang-fr.tar.bz2
 Source3:    okb-lang-en.tar.bz2
 Source4:    okb-lang-nl.tar.bz2
 Requires:   pyotherside-qml-plugin-python3-qt5 >= 1.2.0
-Requires:   jolla-keyboard >= 0.7.13
+Requires:   jolla-keyboard >= 0.8.2
 Requires:   sailfishsilica-qt5 >= 0.10.9
 Requires:   dbus-python3
 BuildRequires:  pkgconfig(Qt5Quick)
@@ -20,7 +20,7 @@ BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Gui)
 BuildRequires:  pkgconfig(sailfishapp) >= 0.0.10
 BuildRequires:  desktop-file-utils
-BuildRequires:  python3-devel >= 3.7.2
+BuildRequires:  python3-devel >= 3.8.1
 Provides:   okb-engine
 Conflicts:  okb-engine
 
