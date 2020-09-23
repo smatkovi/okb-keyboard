@@ -663,7 +663,7 @@ Item { // <- okboard replace SwipeGestureArea (we are doing our own swipe handli
             }
         }
 
-        if (curve.ok) {
+        if (curve.is_ready()) {
             if (! curve.keys_ok) {
                 dumpKeys();
             }
@@ -764,7 +764,7 @@ Item { // <- okboard replace SwipeGestureArea (we are doing our own swipe handli
     }
 
     function okbTriggerKey(key) {
-	if (curve.ok) {
+	if (curve.is_ready()) {
             if (curve.curvepreedit) {
 		if (key.key === Qt.Key_Backspace) {
                     // backspace erases a full word inserted by curve typing

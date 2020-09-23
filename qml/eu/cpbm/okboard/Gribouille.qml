@@ -47,6 +47,7 @@ Canvas {
     property string layout: "0"
     property int orientation: -1
     property bool ok: false
+    property bool active: true
 
     property bool curvepreedit: false
     property int  expectedPos
@@ -391,9 +392,10 @@ Canvas {
 
         if (mode && mode != "common") { // sometimes mode is undefined
             // we don't handle "number" or "phone" keyboards
-            curve.ok = false;
+            curve.active = false;
             return;
         }
+        curve.active = true;
 
         var now = (new Date()).getTime() / 1000;
         if (now > start_time + 300) {
@@ -423,6 +425,10 @@ Canvas {
             })
         }
 
+    }
+
+    function is_ready() {
+        return curve.ok && curve.active;
     }
 
     function loadKeys(keys) {
