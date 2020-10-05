@@ -12,3 +12,4 @@ db.version
 cf.version
 okboard.qml
 tmp
+*.orig
