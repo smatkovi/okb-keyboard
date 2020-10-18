@@ -35,6 +35,8 @@ No tester has been harmed in the making of this software
 class Okboard:
     SHARE_PATH = "/usr/share/okboard"
     MALIIT_CONF_FILE = os.path.join(os.path.expanduser('~'), ".config/maliit.org/server.conf")
+    INSTALL_ERROR_FILE = os.path.join(SHARE_PATH, "install.err")
+    INSTALL_ERROR_MESSAGE = "Installation incomplete. Please reinstall. If the problem does not go away please send a bug report with a copy of file %s" % INSTALL_ERROR_FILE
 
     def __init__(self):
         self.lang = None
@@ -42,6 +44,8 @@ class Okboard:
         self.last_conf = dict()
         self.orientation = None
         self.logf = None
+
+        self.install_failed = os.path.isfile(Okboard.INSTALL_ERROR_FILE)
 
         # add error management wrappers (this is probably no more necessary with pyotherside 1.2 error handler)
         self.guess = self.exception_wrapper(self.predict.guess)
@@ -418,11 +422,15 @@ class Okboard:
             conf = open(Okboard.MALIIT_CONF_FILE, "r").read()
             if conf.find("okboard") > -1: keyboard_enabled = True
 
+        if self.install_failed: keyboard_enabled = False
+
         result = dict(log = self.cf("log", 1, mybool),
                       learn = self.cf("learning_enable", 1, mybool),
                       enable = keyboard_enabled,
                       backtrack = self.cf("backtrack", 1, mybool),
-                      show_wpm = self.cf("show_wpm", 1 if self.test_mode else 0, mybool))
+                      show_wpm = self.cf("show_wpm", 1 if self.test_mode else 0, mybool),
+                      error = self.install_failed,
+                      error_message = Okboard.INSTALL_ERROR_MESSAGE if self.install_failed else None)
 
         self.log("Settings:", result)
         return result

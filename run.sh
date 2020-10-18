@@ -5,12 +5,12 @@
 
 ENGINE="../okb-engine"
 
-cd $(dirname "$0")
+cd "$(dirname "$0")"
 mydir=$(pwd)
 
 die() { echo "ERR: $*" ; exit 1 ; }
 
-ENGINE=$(readlink -f "$ENGINE")
+ENGINE="$(readlink -f "$ENGINE")"
 
 [ -d "$ENGINE" ] || die "okb-engine must be unpacked in the same directory as okb-keyboard"
 
@@ -24,12 +24,14 @@ while [ -n "$1" ] ; do
 	-c) dont_reset_conf=1 ;;
 	-g) debug=1 ;;
 	-s) strace=1 ;;
-	*) die "usage: "`basename "$0"`" [-n] [-c] [-g]" ;;
+	*) die "usage: $(basename "$0") [-n] [-c] [-g]" ;;
     esac
     shift
 done
 
 
+# apply patches to jolla keyboard
+./patch.sh auto
 
 # set up maliit configuration file
 mkdir -p tmp
@@ -43,14 +45,14 @@ cat "$mydir/server.conf" | sed 's+^paths=.*+paths='"$mydir/plugin"'+' | tee "$co
 
 # environment
 OKBOARD_TEST_DIR=/tmp  # let's use /tmp (beware of tmpfs ram usage)
-[ -f "$HOME/.okboard-test" ] && . $HOME/.okboard-test
+[ -f "$HOME/.okboard-test" ] && . "$HOME/.okboard-test"
 export QML2_IMPORT_PATH="$mydir/qml"
 export OKBOARD_TEST_DIR
 [ -n "$dont_reset_conf" ] || rm -f "$OKBOARD_TEST_DIR/okboard.cf" # always start with default params
 echo "Test directory: $OKBOARD_TEST_DIR"
 
-machine=`uname -m`
-ngram_lib=`find "$ENGINE/ngrams/build/" -type d -name "lib.*" | grep "$machine"`
+machine="$(uname -m)"
+ngram_lib="$(find "$ENGINE/ngrams/build/" -type d -name "lib.*" | grep "$machine")"
 [ -d "$ngram_lib" ] || die "Error finding ngram library: $ngram_lib"
 export PYTHONPATH="$PYTHONPATH:$ngram_lib"
 
@@ -68,8 +70,8 @@ for N in $FILES ; do
 done
 
 # symlink to python stuff (avoids declaring new paths)
-for py in $ENGINE/*.py ; do
-    [ -L "$ENGINE/"`basename "$py"` ] || ln -svf "$py" "$qmldir/"
+for py in "$ENGINE"/*.py ; do
+    [ -L "$ENGINE/$(basename "$py")" ] || ln -svf "$py" "$qmldir/"
 done
 
 # symlink to default preference
@@ -79,7 +81,7 @@ done
 if [ -d "$ENGINE/db" ] ; then
     find "$ENGINE/db/" -name '*.tre' | grep '^' >/dev/null || die "$ENGINE/db must contains some .tre & .db files"
     for tre in "$ENGINE/db/"??.tre ; do
-	lang=`basename "$tre" .tre`
+	lang="$(basename "$tre" .tre)"
 	if [ ! -f "$OKBOARD_TEST_DIR/$lang.tre" ] || [ "$OKBOARD_TEST_DIR/$lang.tre" -ot "$tre" ] ; then
 	    # replace database in test directory with new version
 	    cp -avf "$ENGINE/db/$lang.tre" "$ENGINE/db/predict-$lang.db" "$ENGINE/db/predict-$lang.ng" "$OKBOARD_TEST_DIR/"

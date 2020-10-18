@@ -1,6 +1,6 @@
 Name:       okboard-full
 Summary:    OKboard (Jolla magic keyboard)
-Version:    0.6.23
+Version:    0.6.24
 Release:    1
 Group:      System/GUI/Other
 License:    BSD-like + LGPLv2.1
@@ -13,7 +13,7 @@ Source4:    okb-lang-nl.tar.bz2
 Requires:   pyotherside-qml-plugin-python3-qt5 >= 1.2.0
 Requires:   jolla-keyboard >= 0.8.2
 Requires:   sailfishsilica-qt5 >= 0.10.9
-Requires:   dbus-python3
+Requires:   patch >= 2.7.6
 BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Core)
@@ -102,13 +102,11 @@ mkdir -p %{buildroot}/%{qml_maliit_dir} %{buildroot}/%{share_dir} %{buildroot}/%
 
 ln -sf /usr/share/maliit/plugins/com/jolla/touchpointarray.js %{buildroot}/%{qml_maliit_dir}/touchpointarray.js
 
-for file in CurveKeyboardBase.qml okboard.py Gribouille.qml PredictList.qml qmldir \
-	    Settings.qml MailLogs.qml pen.png curves.js VerticalPredictList.qml ; do
+for file in okboard.py Gribouille.qml PredictList.qml qmldir \
+            Settings.qml MailLogs.qml pen.png curves.js VerticalPredictList.qml ; do
     cp -f qml/%{qml_subdir}/$file %{buildroot}/%{qml_maliit_dir}/
 done
 
-cp plugin/okboard.qml %{buildroot}/%{plugin_dir}/okboard-plugin.qml  # @todo [qml-patch] %{buildroot}/%{share_dir}/
-# @todo [qml-patch] cp install_plugin.sh %{buildroot}/%{share_dir}/
 cp build/okboard-settings %{buildroot}/%{bin_dir}/
 
 mkdir -p %{buildroot}%{_datadir}/applications %{buildroot}%{_datadir}/icons/hicolor/86x86/apps
@@ -120,8 +118,12 @@ cp db.version %{buildroot}/%{qml_maliit_dir}
 cp cf.version %{buildroot}/%{qml_maliit_dir}
 
 desktop-file-install --delete-original       \
-  --dir %{buildroot}%{_datadir}/applications             \
-   %{buildroot}%{_datadir}/applications/*.desktop
+                     --dir %{buildroot}%{_datadir}/applications             \
+                     %{buildroot}%{_datadir}/applications/*.desktop
+
+# patching tools
+cp patch.sh %{buildroot}/%{share_dir}
+cp -r patches %{buildroot}/%{share_dir}
 
 popd
 
@@ -129,17 +131,30 @@ popd
 rm -f /home/nemo/.config/maliit.org/server.conf
 killall maliit-server 2>/dev/null || true
 killall okboard-settings 2>/dev/null || true
-# @todo qml-patch %{share_dir}/install_plugin.sh %{plugin_dir}
 rm -f %{plugin_dir}/okboard.qml  # obsolete plugin name
+if %{share_dir}/patch.sh install > %{share_dir}/install.err 2>&1 ; then
+    rm %{share_dir}/install.err
+else
+    exit 1
+fi
+
+
+%preun
+if [ $1 = 0 ] ; then  # do not run uninstall script in case of upgrade
+    rm -f %{share_dir}/install.err
+    rm -f %{plugin_dir}/okboard-plugin.qml
+    rm -f %{qml_maliit_dir}/CurveKeyboardBase.qml
+    rm -f %{plugin_dir}/okboard-plugin.qml.rej
+    rm -f %{qml_maliit_dir}/CurveKeyboardBase.qml.rej
+    rm -f %{plugin_dir}/okboard-plugin.qml.orig
+    rm -f %{qml_maliit_dir}/CurveKeyboardBase.qml.orig
+    rm -f %{plugin_dir}/okboard.qml  # obsolete plugin name
+fi
 
 %postun
 rm -f /home/nemo/.config/maliit.org/server.conf
 killall maliit-server 2>/dev/null || true
 killall okboard-settings 2>/dev/null || true
-if [ $1 = 0 ] ; then  # do not run uninstall script in case of upgrade
-    rm -f %{plugin_dir}/okboard-plugin.qml
-    rm -f %{plugin_dir}/okboard.qml  # obsolete plugin name
-fi
 
 %files
 %defattr(-,root,root,-)
@@ -173,8 +188,6 @@ fi
 
 # keyboard
 %doc okboard-%{version}/README.md okboard-%{version}/LICENSE
-%{qml_maliit_dir}/CurveKeyboardBase.qml
-# ^ @todo [qml-patch] remove
 %{qml_maliit_dir}/Gribouille.qml
 %{qml_maliit_dir}/PredictList.qml
 %{qml_maliit_dir}/touchpointarray.js
@@ -188,9 +201,10 @@ fi
 %{qml_maliit_dir}/pen.png
 %{qml_maliit_dir}/curves.js
 %{qml_maliit_dir}/VerticalPredictList.qml
-%{plugin_dir}/okboard-plugin.qml
-# ^ @todo [qml-patch] remove
 %{bin_dir}/okboard-settings
 %{_datadir}/applications/okboard.desktop
 %{_datadir}/icons/hicolor/86x86/apps/okboard.png
 
+# patching tools
+                                                                                                                                                                                                                                    %{share_dir}/patch.sh
+                                                                                                                                                                                                                                    %{share_dir}/patches/*

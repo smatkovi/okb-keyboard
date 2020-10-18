@@ -13,3 +13,6 @@ cf.version
 okboard.qml
 tmp
 *.orig
+*.rej
+qml/eu/cpbm/okboard/CurveKeyboardBase.qml
+plugin/okboard.qml

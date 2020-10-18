@@ -10,6 +10,8 @@ ApplicationWindow {
     property bool pref_learn: false
     property bool pref_backtrack: false
     property bool pref_wpm: false
+    property bool error: false
+    property string error_message
     property string about: "?"
 
     Python {
@@ -27,6 +29,8 @@ ApplicationWindow {
                 pref_learn = result["learn"];
 		pref_backtrack = result["backtrack"];
 		pref_wpm = result["show_wpm"];
+                error = result["error"]
+                error_message = result["error_message"]
                 app.kb_enabled = result["enable"];
                 console.log("Settings OK");
 
@@ -52,7 +56,7 @@ ApplicationWindow {
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSizeMedium
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "OKboard"
+                text: "OKBoard"
             }
             Label {
                 color: Theme.highlightColor
@@ -100,7 +104,24 @@ ApplicationWindow {
                     width: parent.width
 
                     PageHeader {
-                        title: "OKboard settings"
+                        title: "OKBoard settings"
+                    }
+
+                    Rectangle {
+                        enabled: ! app.error
+                        color: "red"
+                        width: parent.width
+                        height: app.error?error_label.height:0
+                        Label {
+                            enabled: ! app.error
+                            id: error_label
+                            width: column.width
+                            color: "white"
+                            text: error_message
+                            font.pixelSize: Theme.fontSizeMedium
+                            font.bold: true
+                            wrapMode: Label.WordWrap
+                        }
                     }
 
                     SectionHeader {
@@ -110,6 +131,7 @@ ApplicationWindow {
                     TextSwitch {
                         id: st_enable
                         checked: app.kb_enabled
+                        enabled: ! app.error
                         text: "Enable OKBoard (aka Magic Keyboard)"
                         description: "OKBoard replaces the default Jolla keyboard. Just uncheck this item to go back to the Jolla keyboard. When switching keyboards, the new one may be unavailable for a few seconds"
                         automaticCheck: false
