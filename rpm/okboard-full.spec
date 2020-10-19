@@ -1,6 +1,6 @@
 Name:       okboard-full
 Summary:    OKboard (Jolla magic keyboard)
-Version:    0.6.24
+Version:    0.6.25
 Release:    1
 Group:      System/GUI/Other
 License:    BSD-like + LGPLv2.1
@@ -153,9 +153,11 @@ if [ $1 = 0 ] ; then  # do not run uninstall script in case of upgrade
 fi
 
 %postun
-rm -f /home/nemo/.config/maliit.org/server.conf
-killall maliit-server 2>/dev/null || true
-killall okboard-settings 2>/dev/null || true
+if [ $1 = 0 ] ; then
+    rm -f /home/nemo/.config/maliit.org/server.conf
+    killall maliit-server 2>/dev/null || true
+    killall okboard-settings 2>/dev/null || true
+fi
 
 %files
 %defattr(-,root,root,-)
