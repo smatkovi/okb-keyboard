@@ -40,7 +40,7 @@
 +            }
 +	    /* --- okboard end --- */
 +
-+            CurveKeyboardBase {
++            CurveKeyboardBasePatch {
                  id: keyboard
  
                  property color popperBackgroundColor: Theme.colorScheme === Theme.LightOnDark

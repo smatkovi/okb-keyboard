@@ -14,5 +14,5 @@ okboard.qml
 tmp
 *.orig
 *.rej
-qml/eu/cpbm/okboard/CurveKeyboardBase.qml
+qml/eu/cpbm/okboard/CurveKeyboardBasePatch.qml
 plugin/okboard.qml

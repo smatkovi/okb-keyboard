@@ -1,5 +1,5 @@
 --- /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml	2018-12-06 06:11:41.000000000 +0100
-+++ qml/eu/cpbm/okboard/CurveKeyboardBase.qml	2018-11-13 19:04:54.447173624 +0100
++++ qml/eu/cpbm/okboard/CurveKeyboardBasePatch.qml	2018-11-13 19:04:54.447173624 +0100
 @@ -34,7 +34,11 @@
  import org.nemomobile.configuration 1.0
  import "touchpointarray.js" as ActivePoints

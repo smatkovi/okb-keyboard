@@ -43,7 +43,7 @@
              }
  
 -            KeyboardBase {
-+            CurveKeyboardBase {
++            CurveKeyboardBasePatch {
                  id: keyboard
  
                  property bool allowLayoutChanges

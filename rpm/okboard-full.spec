@@ -143,12 +143,12 @@ fi
 %preun
 if [ $1 = 0 ] ; then  # do not run uninstall script in case of upgrade
     rm -f %{share_dir}/install.err
-    rm -f %{plugin_dir}/okboard-plugin.qml
-    rm -f %{qml_maliit_dir}/CurveKeyboardBase.qml
-    rm -f %{plugin_dir}/okboard-plugin.qml.rej
-    rm -f %{qml_maliit_dir}/CurveKeyboardBase.qml.rej
-    rm -f %{plugin_dir}/okboard-plugin.qml.orig
-    rm -f %{qml_maliit_dir}/CurveKeyboardBase.qml.orig
+    rm -f %{plugin_dir}/okboard-plugin-patch.qml
+    rm -f %{qml_maliit_dir}/CurveKeyboardBasePatch.qml
+    rm -f %{plugin_dir}/okboard-plugin-patch.qml.rej
+    rm -f %{qml_maliit_dir}/CurveKeyboardBasePatch.qml.rej
+    rm -f %{plugin_dir}/okboard-plugin-patch.qml.orig
+    rm -f %{qml_maliit_dir}/CurveKeyboardBasePatch.qml.orig
     rm -f %{plugin_dir}/okboard.qml  # obsolete plugin name
 fi
 

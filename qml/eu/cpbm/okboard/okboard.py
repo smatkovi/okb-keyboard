@@ -439,7 +439,7 @@ class Okboard:
         dir = os.path.dirname(Okboard.MALIIT_CONF_FILE)
         if not os.path.isdir(dir): os.mkdir(dir)
         with open(Okboard.MALIIT_CONF_FILE, 'w') as f:
-            keyboard = "okboard-plugin" if value else "jolla-keyboard"
+            keyboard = "okboard-plugin-patch" if value else "jolla-keyboard"
             f.write("[maliit]\n")
             f.write('onscreen\\active=%s.qml\n' % keyboard)
             f.write('onscreen\\enabled=%s.qml\n' % keyboard)

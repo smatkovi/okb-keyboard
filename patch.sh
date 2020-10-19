@@ -8,8 +8,8 @@ current_release="$(ssu re 2>/dev/null | sed 's/^.*:\ *//')"
 
 # format is patch name, jolla keyboard file, path in source code, okboard target file path
 FILES="
-plugin /usr/lib/maliit/plugins/jolla-keyboard.qml plugin/okboard.qml /usr/lib/maliit/plugins/okboard-plugin.qml
-base /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml qml/eu/cpbm/okboard/CurveKeyboardBase.qml /usr/share/maliit/plugins/eu/cpbm/okboard/CurveKeyboardBase.qml
+plugin /usr/lib/maliit/plugins/jolla-keyboard.qml plugin/okboard.qml /usr/lib/maliit/plugins/okboard-plugin-patch.qml
+base /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml qml/eu/cpbm/okboard/CurveKeyboardBasePatch.qml /usr/share/maliit/plugins/eu/cpbm/okboard/CurveKeyboardBasePatch.qml
 "
 
 ROOT=
