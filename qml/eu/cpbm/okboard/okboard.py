@@ -430,7 +430,7 @@ class Okboard:
                       backtrack = self.cf("backtrack", 1, mybool),
                       show_wpm = self.cf("show_wpm", 1 if self.test_mode else 0, mybool),
                       error = self.install_failed,
-                      error_message = Okboard.INSTALL_ERROR_MESSAGE if self.install_failed else None)
+                      error_message = Okboard.INSTALL_ERROR_MESSAGE if self.install_failed else "")
 
         self.log("Settings:", result)
         return result
@@ -478,8 +478,10 @@ class Okboard:
         self._restart_maliit_server()
 
     def stg_about(self):
-        return ABOUT.strip() + "\nEngine: %s\nKeyboard: %s\nDB format: %s\nConfiguration format: %s" % \
+        about = ABOUT.strip() + "\nEngine: %s\nKeyboard: %s\nDB format: %s\nConfiguration format: %s" % \
             (self.predict.get_version(), self.get_version(), self.get_expected_db_version(), self.get_expected_cf_version())
+        self.log("About:", about)
+        return about
 
     def stg_check_logs(self):
         logfiles = glob.glob(os.path.join(self.local_dir, "*.log*"))  # also include .log.bak files in case of recent rotation
