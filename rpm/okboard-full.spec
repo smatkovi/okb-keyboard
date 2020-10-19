@@ -14,6 +14,7 @@ Requires:   pyotherside-qml-plugin-python3-qt5 >= 1.2.0
 Requires:   jolla-keyboard >= 0.8.2
 Requires:   sailfishsilica-qt5 >= 0.10.9
 Requires:   patch >= 2.7.6
+Requires:   python3-dbus
 BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Core)
