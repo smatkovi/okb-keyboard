@@ -31,6 +31,13 @@ usage() {
     exit 255
 }
 
+mydiff() {
+    local st=
+    ( set -x ; diff "$@" ) || st="$?"
+    [ -z "$st" -o "$st" = 1 ] || return 1
+    return 0
+}
+
 check() {
     local ok=1
     while read -r id os mine _ ; do
@@ -39,7 +46,7 @@ check() {
 	if [ ! -f "$patch" ] ; then
 	    ok=
 	    echo "Missing file: $patch"
-	elif ! cmp <(tail -n +3 "$patch") <(diff -u "$os" "$mine" | tail -n +3) >/dev/null ; then
+	elif ! cmp <(tail -n +3 "$patch") <(mydiff -u "$os" "$mine" | tail -n +3) >/dev/null ; then
 	    ok=
 	    echo "Mismatching patch: $patch"
 	fi
@@ -51,7 +58,7 @@ check() {
 create() {
     while read -r id os mine _ ; do
 	[ -n "$id" ] || continue
-	( set -x ; diff -u "$os" "$mine" > "patches/${id}-${current_release}.diff" )
+	mydiff -u "$os" "$mine" > "patches/${id}-${current_release}.diff"
     done <<< "$FILES"
     find patches/ -name "*${current_release}.diff" | xargs ls -la
 }

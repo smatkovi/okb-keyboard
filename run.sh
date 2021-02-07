@@ -30,9 +30,6 @@ while [ -n "$1" ] ; do
 done
 
 
-# apply patches to jolla keyboard
-./patch.sh auto
-
 # set up maliit configuration file
 mkdir -p tmp
 conffile="$HOME/.config/maliit.org/server.conf"

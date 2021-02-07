@@ -209,5 +209,5 @@ fi
 %{_datadir}/icons/hicolor/86x86/apps/okboard.png
 
 # patching tools
-                                                                                                                                                                                                                                    %{share_dir}/patch.sh
-                                                                                                                                                                                                                                    %{share_dir}/patches/*
+%{share_dir}/patch.sh
+%{share_dir}/patches/*
