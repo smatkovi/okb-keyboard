@@ -1,5 +1,8 @@
 #! /bin/bash
 # patch management for Okboard QML files
+#
+# this script will be run by ash busybox shell during RPM installation
+# so we have to avoid some bashisms
 
 set -euo pipefail
 
@@ -13,6 +16,8 @@ base /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml qml/eu/cpbm/okboard/Cu
 "
 
 ROOT=
+
+FILES_ID="$(echo "$FILES" | awk '{ print $1 }' | grep '.')"
 
 die() { echo "ERR: $*" ; exit 1 ; }
 
@@ -39,27 +44,34 @@ mydiff() {
 }
 
 check() {
-    local ok=1
-    while read -r id os mine _ ; do
-	[ -n "$id" ] || continue
+    local ok=1 id
+    for id in $FILES_ID ; do
+        set $(echo "$FILES" | grep "^$id ")
+        local os="$2" mine="$3"
 	local patch="patches/${id}-${current_release}.diff"
 	if [ ! -f "$patch" ] ; then
 	    ok=
 	    echo "Missing file: $patch"
-	elif ! cmp <(tail -n +3 "$patch") <(mydiff -u "$os" "$mine" | tail -n +3) >/dev/null ; then
-	    ok=
-	    echo "Mismatching patch: $patch"
-	fi
-    done <<< "$FILES"
+	else
+            local expected="$(tail -n +3 "$patch")"
+            local current="$(diff -u "$os" "$mine" | tail -n +3)"
+            if [ "$expected" != "$current" ] ; then
+	        ok=
+	        echo "Mismatching patch: $patch"
+	    fi
+        fi
+    done
     [ -n "$ok" ] || die "Patch files are not up to date"
     echo "OK"
 }
 
 create() {
-    while read -r id os mine _ ; do
-	[ -n "$id" ] || continue
+    local id
+    for id in $FILES_ID ; do
+        set $(echo "$FILES" | grep "^$id ")
+        local os="$2" mine="$3"
 	mydiff -u "$os" "$mine" > "patches/${id}-${current_release}.diff"
-    done <<< "$FILES"
+    done
     find patches/ -name "*${current_release}.diff" | xargs ls -la
 }
 
@@ -67,16 +79,17 @@ apply() {
     local release="$1"
     [ -n "$release" ] || usage
     echo "Applying patch for release $release ..."
-    err=
-    while read -r id os mine prod ; do
-	[ -n "$id" ] || continue
+    local id err=
+    for id in $FILES_ID ; do
+        set $(echo "$FILES" | grep "^$id ")
+        local os="$2" mine="$3" prod="$4"
 	[ -f "patches/${id}-${release}.diff" ] || { echo "No patch for release '${release}'" ; return 1 ; }
         if [ -n "$ROOT" ] ; then target="$prod" ; else target="$mine" ; fi
         [ -w "$(dirname "$target")/." ] || dir "Target not writable: $target"
 	rm -f "$target.rej" "$target.orig"
 	cp -vf "$os" "$target"
 	patch "$target" "patches/${id}-${release}.diff" || err=1
-    done <<< "$FILES"
+    done
     [ -n "$err" ] && echo "### Patch failed, check for .rej files !" && return 1
     echo "Patch for release $release applied successfully"
 }
