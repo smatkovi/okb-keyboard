@@ -1,6 +1,6 @@
 Name:       okboard-full
 Summary:    OKboard (Jolla magic keyboard)
-Version:    0.6.27
+Version:    0.6.28
 Release:    1
 Group:      System/GUI/Other
 License:    BSD-like + LGPLv2.1
@@ -133,16 +133,14 @@ rm -f /home/nemo/.config/maliit.org/server.conf
 killall maliit-server 2>/dev/null || true
 killall okboard-settings 2>/dev/null || true
 rm -f %{plugin_dir}/okboard.qml  # obsolete plugin name
-if %{share_dir}/patch.sh install > %{share_dir}/install.err 2>&1 ; then
-    rm %{share_dir}/install.err
-else
+if ! %{share_dir}/patch.sh install > %{share_dir}/install.err 2>&1 ; then
     exit 1
 fi
 
 
 %preun
+rm -f %{share_dir}/install.err
 if [ $1 = 0 ] ; then  # do not run uninstall script in case of upgrade
-    rm -f %{share_dir}/install.err
     rm -f %{plugin_dir}/okboard-plugin-patch.qml
     rm -f %{qml_maliit_dir}/CurveKeyboardBasePatch.qml
     rm -f %{plugin_dir}/okboard-plugin-patch.qml.rej
@@ -210,4 +208,4 @@ fi
 
 # patching tools
 %{share_dir}/patch.sh
-%{share_dir}/patches/*
+%{share_dir}/patches
