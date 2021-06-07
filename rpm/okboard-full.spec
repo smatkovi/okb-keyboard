@@ -1,6 +1,6 @@
 Name:       okboard-full
 Summary:    OKboard (Jolla magic keyboard)
-Version:    0.6.28
+Version:    0.6.29
 Release:    1
 Group:      System/GUI/Other
 License:    BSD-like + LGPLv2.1
@@ -27,10 +27,10 @@ Conflicts:  okb-engine
 
 
 %define qml_subdir eu/cpbm/okboard
-%define qml_maliit_dir /usr/share/maliit/plugins/%{qml_subdir}
-%define share_dir /usr/share/okboard
-%define plugin_dir /usr/lib/maliit/plugins
-%define bin_dir /usr/bin
+%define qml_maliit_dir %{_datadir}/maliit/plugins/%{qml_subdir}
+%define share_dir %{_datadir}/okboard
+%define plugin_dir %{_libdir}/maliit/plugins
+%define bin_dir %{_bindir}
 
 %description
 OKboard maliit plugin and simple settings application.
@@ -101,10 +101,10 @@ popd
 pushd okboard-%{version}
 mkdir -p %{buildroot}/%{qml_maliit_dir} %{buildroot}/%{share_dir} %{buildroot}/%{plugin_dir} %{buildroot}/%{bin_dir}
 
-ln -sf /usr/share/maliit/plugins/com/jolla/touchpointarray.js %{buildroot}/%{qml_maliit_dir}/touchpointarray.js
+ln -sf %{plugin_dir}/com/jolla/touchpointarray.js %{buildroot}/%{qml_maliit_dir}/touchpointarray.js
 
 for file in okboard.py Gribouille.qml PredictList.qml qmldir \
-            Settings.qml MailLogs.qml pen.png curves.js VerticalPredictList.qml ; do
+                       Settings.qml MailLogs.qml pen.png curves.js VerticalPredictList.qml ; do
     cp -f qml/%{qml_subdir}/$file %{buildroot}/%{qml_maliit_dir}/
 done
 
