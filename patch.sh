@@ -9,11 +9,11 @@ set -euo pipefail
 cd "$(dirname "$0")"
 current_release="$(ssu re 2>/dev/null | sed 's/^.*:\ *//')"
 
-if [ "$(uname -m)" = "aarch64" ] ; then LIB="lib64" ; else LIB="lib" ; fi
+LIB="$(rpm --eval '%{_libdir}')"
 
 # format is patch name, jolla keyboard file, path in source code, okboard target file path
 FILES="
-plugin /usr/${LIB}/maliit/plugins/jolla-keyboard.qml plugin/okboard.qml /usr/${LIB}/maliit/plugins/okboard-plugin-patch.qml
+plugin ${LIB}/maliit/plugins/jolla-keyboard.qml plugin/okboard.qml ${LIB}/maliit/plugins/okboard-plugin-patch.qml
 base /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml qml/eu/cpbm/okboard/CurveKeyboardBasePatch.qml /usr/share/maliit/plugins/eu/cpbm/okboard/CurveKeyboardBasePatch.qml
 "
 
