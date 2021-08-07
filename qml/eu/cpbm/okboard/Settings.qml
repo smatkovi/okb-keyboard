@@ -72,6 +72,7 @@ ApplicationWindow {
 
             CoverAction {
                 iconSource: "image://theme/icon-cover-next"
+                enabled: ! app.error
                 onTriggered: {
                     set_kb_enable(! app.kb_enabled);
                 }
