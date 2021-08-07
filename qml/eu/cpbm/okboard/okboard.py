@@ -181,8 +181,8 @@ class Okboard:
         for p in params: params[p] = float(params[p])
 
         result["curve_params"] = json.dumps(params)
-        result["disable"] = mybool(params.get("disable_orientation", False))
-        result["kb_lang"] = self.lang
+        result["disable"] = mybool(params.get("disable_orientation", False)) or not self.lang  # disable KB also if language not enabled
+        result["kb_lang"] = self.lang  or "None"  # avoid crash in QML
 
         if only_if_modified and result == self.last_conf: return dict(unchanged = True)
         self.last_conf = dict(result)

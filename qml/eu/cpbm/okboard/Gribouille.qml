@@ -69,7 +69,7 @@ Canvas {
 
     property string errormsg: ""
 
-    property bool orientation_disable: false
+    property bool configuration_disable: false
 
     property double timer_last;
     property string timer_str;
@@ -192,7 +192,7 @@ Canvas {
             log("configuration updated:")
             var msg = "> ";
             for (var k in conf) {
-                if (conf.hasOwnProperty(k)) {
+                if (conf.hasOwnProperty(k) && conf[k]) {
                     if (msg.length + conf[k].length > 80) { log(msg); msg = "> "; }
                     msg += " " + k + "=" + conf[k];
                 }
@@ -219,9 +219,9 @@ Canvas {
 	    // WPM indicator
 	    show_wpm = (conf['show_wpm']?true:false); // cast to boolean :)
 
-	    // orientation disable
+	    // disable swiping for specific configurations (language or orientation)
             conf_ok = true;
-            orientation_disable =  conf['disable']
+            configuration_disable =  conf['disable']
 
 	    // language
 	    kb_lang = conf['kb_lang'];
@@ -410,7 +410,7 @@ Canvas {
         if (_get_config) {
             py.call("okboard.k.get_config", [ true ], function(result) {
                 apply_configuration(result);
-                if (orientation_disable) {
+                if (configuration_disable) {
                     curve.ok = false;
                     curve.layout = "--";
 
