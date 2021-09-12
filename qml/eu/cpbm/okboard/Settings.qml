@@ -1,6 +1,7 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 import io.thp.pyotherside 1.0
+import Nemo.Notifications 1.0
 
 ApplicationWindow {
     id: app
@@ -43,7 +44,18 @@ ApplicationWindow {
         })
     }
 
+    Notification {
+        id: errorNotification
+        isTransient: true
+        summary: "OKBoard activation failed"
+        body: "Check error message in settings app"
+    }
+
     function set_kb_enable(value) {
+        if (value && app.error) {
+            value = false;
+            errorNotification.publish();
+        }
         kb_enabled = value
         py.call("okboard.k.stg_enable", [ value ]);
     }
@@ -72,7 +84,6 @@ ApplicationWindow {
 
             CoverAction {
                 iconSource: "image://theme/icon-cover-next"
-                enabled: ! app.error
                 onTriggered: {
                     set_kb_enable(! app.kb_enabled);
                 }
@@ -137,9 +148,7 @@ ApplicationWindow {
                         description: "OKBoard replaces the default Jolla keyboard. Just uncheck this item to go back to the Jolla keyboard. When switching keyboards, the new one may be unavailable for a few seconds"
                         automaticCheck: false
                         onClicked: {
-                            /* remorse.execute((checked?"Disable":"Enable") + " OKboard", function() {  */
                             set_kb_enable(! checked)
-                            /* }) */
                         }
                     }
 
