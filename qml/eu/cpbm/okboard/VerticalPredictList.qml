@@ -62,8 +62,8 @@ Component {
 	    Connections {
 		// update display when curve context changes
 		target: keyboard
-		onCurvepreeditChanged: { curvePredictionListView.update_model(); }
-		onCurveerrorChanged: { curvePredictionListView.update_model(); }
+		onCurvepreeditChanged: { verticalCurvePredictionListView.update_model(); }
+		onCurveerrorChanged: { verticalCurvePredictionListView.update_model(); }
 	    }
 
             Rectangle {

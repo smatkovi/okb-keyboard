@@ -1,0 +1,99 @@
+--- /usr/lib/maliit/plugins/jolla-keyboard.qml	2021-06-10 02:00:00.000000000 +0200
++++ plugin/okboard.qml	2021-09-12 13:50:04.502480392 +0200
+@@ -41,6 +41,8 @@
+ import org.nemomobile.dbus 2.0
+ import org.nemomobile.systemsettings 1.0
+ 
++import eu.cpbm.okboard 1.0 // okboard
++
+ SilicaControl {
+     id: canvas
+ 
+@@ -64,6 +66,40 @@
+ 
+     property string currentLayout: previousLayoutConfig.value
+ 
++    /* --- okboard begin --- */
++    property bool showPredictionList: keyboard.layout && !keyboard.layout.splitActive && (keyboard.curvepreedit || keyboard.curveerror)
++    property InputHandler okbSaveInputHandler
++    property Component okbSaveTopItem
++    property string configurationKey: keyboard.language + ':' + keyboard.rotation + ':' + keyboard.mode
++
++    onShowPredictionListChanged: {
++        updatePredictionList();
++    }
++
++    onConfigurationKeyChanged: {
++        keyboard.updateCurveContext(keyboard.language, keyboard.mode);
++    }
++
++    function updatePredictionList() {
++        var currentInputHandler = keyboard.inputHandler;
++	if (currentInputHandler) {
++	    if (currentInputHandler.topItem != curvePredictionList) {
++		// backup original InputHandler topItem because we will need to revert to this
++		// one when we no longer need to display the swipe candidate list
++		okbSaveTopItem = currentInputHandler.topItem
++		okbSaveInputHandler = currentInputHandler
++	    }
++
++	    if (showPredictionList) {
++		currentInputHandler.topItem = curvePredictionList
++	    } else if (okbSaveTopItem) {
++		currentInputHandler.topItem = okbSaveTopItem  // revert to original topItem
++	    }
++	}
++    }
++
++    /* --- okboard end --- */
++
+     palette {
+         colorScheme: editorPalette.colorScheme
+         highlightColor: editorPalette.highlightColor
+@@ -319,7 +355,16 @@
+         effect: ThemeEffect.PressWeak
+     }
+ 
+-    KeyboardBase {
++    /* --- okboard begin --- */
++    PredictList {
++        id: curvePredictionList
++    }
++    VerticalPredictList {
++        id: curveVerticalPredictionList
++    }
++    /* --- okboard end --- */
++
++    CurveKeyboardBasePatch { // okboard: replaces KeyboardBase from com.jolla
+         id: keyboard
+ 
+         property color popperBackgroundColor: canvas.palette.colorScheme === Theme.LightOnDark
+@@ -369,7 +414,7 @@
+         // and future updates to the current index will be done in a onActiveLayoutChanged
+         // handler which will only assign a value if there is a valid index for the layout.
+         currentIndex: _layoutModel.filter, Math.max(_layoutModel.getLayoutIndex(_layoutModel.activeLayout), 0)
+-        interactive: mode === "common" && (!layout || layout.allowSwipeGesture)
++        interactive: false // okboard disable layout switch: mode === "common" && (!layout || layout.allowSwipeGesture)
+ 
+         contentItem.visible: keyboard.mode === "common"
+         model: _layoutModel
+@@ -560,8 +605,19 @@
+         }
+ 
+         Loader {
++            /* okboard remove
+             sourceComponent: keyboard.inputHandler && keyboard.layout && keyboard.layout.splitActive
+                              ? keyboard.inputHandler.verticalItem : null
++            */
++	    /* --- okboard begin --- */
++	    // this is ridiculously unreadable but does not work from a function
++            // note: this is only used by multi-finger swipe in split landscape keyboard
++	    sourceComponent: (keyboard.layout && keyboard.layout.splitActive)?(
++		(keyboard.curvepreedit || keyboard.curveerror)?curveVerticalPredictionList:(
++		    keyboard.inputHandler?keyboard.inputHandler.verticalItem:null
++		)
++	    ):null;
++	    /* --- okboard end --- */
+             x: (keyboard.width - width) / 2
+             y: keyboard.height - height
+             width: geometry.middleBarWidth

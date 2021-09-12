@@ -43,6 +43,10 @@ Canvas {
     anchors.fill: parent
     onPaint: { draw(); }
 
+    // better performance or placebo effect ?
+    renderStrategy: Canvas.Threaded
+    renderTarget: Canvas.FramebufferObject
+
     property bool blank: false
     property string layout: "0"
     property int orientation: -1
@@ -93,6 +97,9 @@ Canvas {
     property int last_pos: -1;
 
     property string kb_lang: "";
+
+    property int offset_x: 0;
+    property int offset_y: 0;
 
     CurveKB {
         id: curveimpl
@@ -337,8 +344,7 @@ Canvas {
     }
 
     function addPoint(point, index) {
-        curveimpl.addPoint(point.x, point.y, index); // new API
-        // old API: if (index == 0) { if (lastPoints.length) { curveimpl.addPoint(point.x, point.y); } else { curveimpl.startCurve(point.x, point.y); } }
+        curveimpl.addPoint(point.x - offset_x, point.y - offset_y, index); // new API
 
         while(lastPoints.length <= index) { lastPoints.push([]); }
 
@@ -373,6 +379,7 @@ Canvas {
         var _get_config = false;
 
         // update layout
+        layout = layout.toLowerCase();
         if (layout.substr(-4) == ".qml") {
             layout = layout.substr(0, layout.length - 4);
         }
@@ -765,6 +772,11 @@ Canvas {
 
     function clearError() {
 	errormsg = "";
+    }
+
+    function setOffset(x, y) {
+        offset_x = x;
+        offset_y = y;
     }
 
 }

@@ -91,8 +91,8 @@ fi
 
 # restart maliit
 systemctl --user stop maliit-server.service
-killall maliit-server 2>/dev/null || true
 echo "Starting maliit-server ..."
+killall maliit-server 2>/dev/null || true
 if [ -n "$debug" ] ; then
     gdb --args maliit-server
 elif [ -n "$no_detach" ] ; then
@@ -101,5 +101,16 @@ elif [ -n "$no_detach" ] ; then
 elif [ -n "$strace" ] ; then
     strace -f maliit-server > /tmp/maliit-strace.log 2>&1
 else
-    maliit-server &
+    for retry in 1 2 3 ; do
+        killall maliit-server 2>/dev/null || true
+        maliit-server &
+        pid="$!"
+        sleep 1
+        if [ "$(pidof maliit-server)" = "$pid" ] ; then
+            echo "OK"
+            exit 0
+        fi
+        echo "Retry: $retry"
+    done
+    die "maliit-server start failed"
 fi

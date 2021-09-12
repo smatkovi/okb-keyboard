@@ -1,0 +1,360 @@
+--- /usr/share/maliit/plugins/com/jolla/KeyboardBase.qml	2021-08-06 06:20:59.000000000 +0200
++++ qml/eu/cpbm/okboard/CurveKeyboardBasePatch.qml	2021-09-12 16:21:34.359472467 +0200
+@@ -27,6 +27,8 @@
+  *
+  */
+ 
++import com.jolla 1.0 // okboard (import first because of fake KeyboardBackground declaration in qmldir)
++
+ import QtQuick 2.0
+ import QtQml.Models 2.2
+ import Sailfish.Silica 1.0
+@@ -36,6 +38,9 @@
+ import org.nemomobile.configuration 1.0
+ import "touchpointarray.js" as ActivePoints
+ 
++import eu.cpbm.okboard 1.0 // okboard
++import "curves.js" as InProgress // okboard
++
+ PagedView {
+     id: keyboard
+ 
+@@ -71,6 +76,22 @@
+     property bool closeSwipeActive
+     property int closeSwipeThreshold: Math.max(currentLayoutHeight*.3, Theme.itemSizeSmall)
+ 
++    /* --- okboard begin --- */
++    property bool inCurve
++    property int curveLastX
++    property int curveLastY
++    property int curveStartX
++    property int curveStartY
++    property bool disablePopper
++    property bool curvepreedit: curve.curvepreedit  // just a proxy
++    property string curveerror: curve.errormsg // proxy
++    property double scaling_ratio: curve.scaling_ratio // idem
++    property string wpm: curve.wpm // idem
++    property string preedit: inputHandler.preedit?inputHandler.preedit:""
++    property int curveCount
++    property int curveIndex
++    /* --- okboard end --- */
++
+     readonly property real currentLayoutHeight: layout ? layout.height : 2 * Theme.itemSizeHuge
+     readonly property real minimumLayoutHeight: {
+         var height = currentLayoutHeight
+@@ -200,6 +221,16 @@
+         onTriggered: applyAutocaps()
+     }
+ 
++    /* --- okboard begin --- */
++    Timer {
++        id: curveDisableTimer
++        interval: 400  // a bit smaller than Popper timer to make sure curve is disabled when selecting an item in the Popper
++        onTriggered: {
++            resetCurve()
++        }
++    }
++    /* --- okboard end --- */
++
+     QuickPick {
+         id: quickPick
+     }
+@@ -233,6 +264,15 @@
+     }
+ 
+ 
++    /* --- okboard begin --- */
++    Gribouille {
++        id: curve
++        opacity: 1
++        anchors.fill: parent
++    }
++    /* --- okboard end --- */
++
++
+     MouseArea {
+         id: mouseArea
+ 
+@@ -288,10 +328,13 @@
+         silenceFeedback = false
+         pressTimer.start()
+ 
++	/* okboard remove
+         for (var i = 0; i < touchPoints.length; i++) {
+             var point = ActivePoints.addPoint(touchPoints[i])
+             updatePressedKey(point)
+         }
++	*/
++	okbHandlePressed(touchPoints); // okboard
+     }
+ 
+     function handleUpdated(touchPoints) {
+@@ -300,6 +343,8 @@
+             return
+         }
+ 
++	okbHandleUpdated(touchPoints); // okboard
++
+         for (var i = 0; i < touchPoints.length; i++) {
+             var incomingPoint = touchPoints[i]
+             var point = ActivePoints.findById(incomingPoint.pointId)
+@@ -392,6 +437,9 @@
+                 cancelAllTouchPoints()
+                 languageSelectionPopup.hide()
+                 canvas.switchLayout(languageSelectionPopup.activeCell)
++
++		okbHandleReleased1(touchPoints); // okboard
++
+                 return
+             }
+         }
+@@ -431,12 +479,16 @@
+         if (ActivePoints.array.length === 0) {
+             mouseArea.preventStealing = false
+         }
++
++        okbHandleReleased2(touchPoints); // okboard
+     }
+ 
+     function handleCanceled(touchPoints) {
+         for (var i = 0; i < touchPoints.length; i++) {
+             cancelTouchPoint(touchPoints[i].pointId)
+         }
++
++        okbHandleCanceled(touchPoints); // okboard
+     }
+ 
+     function keyAt(x, y) {
+@@ -602,6 +654,8 @@
+     }
+ 
+     function triggerKey(key) {
++	okbTriggerKey(key); // okboard
++
+         if (key.keyType !== KeyType.DeadKey) {
+             inputHandler._handleKeyClick(key)
+         }
+@@ -622,4 +676,223 @@
+             lastPressedKey = pressedKey
+         }
+     }
++
++    /* --- okboard begin --- */
++    // reset curve typing
++    function resetCurve() {
++        curve.reset()
++        inCurve = false
++    }
++
++
++    // send information about layout to curve component
++    function updateCurveContext(layout, mode) {
++        curve.updateContext(layout, mode);
++    }
++
++    // as name implies, found on the internet https://newbedev.com/qml-mouse-absolute-position-in-mousearea
++    function getAbsolutePosition(node) {
++        var returnPos = {};
++        returnPos.x = 0;
++        returnPos.y = 0;
++        if(node !== undefined && node !== null) {
++            var parentValue = getAbsolutePosition(node.parent);
++            if ('autocaps' in node) {
++                // position of KeyboardBase seems to contain strange values
++                // and we can assume it's zero related to its parent
++                returnPos.x = parentValue.x;
++                returnPos.y = parentValue.y;
++            } else {
++                returnPos.x = parentValue.x + node.x;
++                returnPos.y = parentValue.y + node.y;
++            }
++        }
++        return returnPos;
++    }
++
++    // curvekb: dump text keys to c++ plugin
++    function dumpKeys() {
++        if (layout) {
++            var abs = getAbsolutePosition(layout);
++            curve.setOffset(abs.x, abs.y);
++        }
++        var lst = keyboard.getTextKeys();
++        curve.loadKeys(lst);
++    }
++
++    // compute keys list w/ coordinates
++    function getTextKeys(item) {
++        if (typeof(item) === 'undefined') { item = layout; }
++        if (! item) { return; }
++        var array_out = new Array;
++
++        if (typeof item.keyType !== 'undefined' && item.enabled === true &&
++	    item.caption && item.caption.length == 1) {
++
++            var key_info = new Object;
++            key_info.x = item.x;
++            key_info.y = item.y;
++            key_info.width = item.width;
++            key_info.height = item.height;
++            key_info.caption = item.caption;
++            array_out.push(key_info);
++            return array_out;
++        }
++
++        for (var i = 0; i < item.children.length; i ++) {
++            var child = item.children[i];
++            var keys = getTextKeys(child);
++            for (var j = 0; j < keys.length; j ++) {
++                var key_info = keys[j];
++                key_info.x += item.x;
++                key_info.y += item.y;
++                array_out.push(key_info);
++            }
++        }
++
++        return array_out;
++    }
++
++    function get_predict_words(callback) {
++        curve.get_predict_words(callback);
++    }
++
++    function commitWord(word) {
++        curve.commitWord(word, true, undefined);
++    }
++
++    function clearError() {
++	curve.clearError();
++    }
++
++    /* additional processings for event handlers */
++
++    function okbHandlePressed(touchPoints) {
++        if (! inCurve) {
++            // curve typing: take over multi-touch operations
++
++            for (var i = 0; i < touchPoints.length; i++) {
++                var point = ActivePoints.addPoint(touchPoints[i])
++                updatePressedKey(point, true)
++            }
++        }
++
++        if (curve.is_ready() && ! inSymView) {
++            if (! curve.keys_ok) {
++                dumpKeys();
++            }
++
++            for(var i = 0; i < touchPoints.length; i++) {
++                if (! inCurve) {
++                    curveCount = 0;
++                    curveIndex = 0;
++                    inCurve = true;
++                    curve.start()
++
++                    disablePopper = false;
++                    curveDisableTimer.stop();
++                    curveDisableTimer.start();
++                }
++
++                var id = touchPoints[i].pointId;
++
++                var cur = {}
++                cur.curveIndex = curveIndex;
++                cur.curveStartX = cur.curveLastX = touchPoints[i].x;
++                cur.curveStartY = cur.curveLastY = touchPoints[i].y;
++                InProgress.set(id, cur);
++
++                curveIndex++;
++                curveCount++;
++
++                curve.addPoint(touchPoints[i], cur.curveIndex);
++                // var s = "==> Curve start #" + id + " " + touchPoints[i].x + "," + touchPoints[i].y; curve.log(s);
++
++            }
++
++        } else {
++            resetCurve();
++        }
++    }
++
++    function okbHandleUpdated(touchPoints) {
++	if (inCurve) {
++            for(var i = 0; i < touchPoints.length; i++) {
++                var id = touchPoints[i].pointId;
++
++                var point = touchPoints[i];
++                var cur = InProgress.get(id);
++
++                if (Math.abs(point.x - cur.curveLastX) >= 10 * scaling_ratio
++		    || Math.abs(point.y - cur.curveLastY) >= 10 * scaling_ratio) {
++                    curve.addPoint(point, cur.curveIndex);
++                    cur.curveLastX = point.x;
++                    cur.curveLastY = point.y;
++                    InProgress.set(id, cur); // needed ?
++                }
++                if (! disablePopper) {
++                    if (Math.abs(point.x - cur.curveStartX) >= 50 * scaling_ratio
++			|| Math.abs(point.y - cur.curveStartY) >= 50 * scaling_ratio
++			|| curveCount >= 2) {
++                        disablePopper = true;
++                        cancelAllTouchPoints();
++                        curveDisableTimer.stop();
++                    }
++                }
++            }
++            if (disablePopper) { return; }
++        }
++    }
++
++    function okbHandleReleased1(touchPoints) {
++	// if (languageSelectionPopup.activeCell > 0) {
++        //     curve.updateContext(canvas.layoutModel.get(languageSelectionPopup.activeCell).layout);
++        // }
++    }
++
++    function okbHandleReleased2(touchPoints) {
++        if (inCurve) {
++            for(var i = 0; i < touchPoints.length; i++) {
++                var id = touchPoints[i].pointId;
++                var point = touchPoints[i];
++                var cur = InProgress.get(id);
++
++                // var s = "==> Curve end #" + id + " " + touchPoints[i].x + "," + touchPoints[i].y; curve.log(s);
++                curve.endCurve(cur.curveIndex);
++                curveCount --;
++                InProgress.remove(id);
++            }
++            if (curveCount == 0) {
++                // curve.log("==> Curve completed");
++                curve.done(disablePopper);
++                inCurve = false;
++            }
++        }
++    }
++
++    function okbHandleCanceled(touchPoints) {
++        if (inCurve) {
++            resetCurve();
++        }
++    }
++
++    function okbTriggerKey(key) {
++	if (curve.is_ready()) {
++            if (curve.curvepreedit) {
++		if (key.key === Qt.Key_Backspace) {
++                    // backspace erases a full word inserted by curve typing
++		    curve.backspace();
++		} else if (key.text.length > 0 && key.text >= 'a' && key.text <= 'z') {
++                    // if we type a single letter when in preedit mode caused by curve typing, we insert a space because it's the beginning of a new word
++                    autocaps = false // if the first word was autocaps the new one is not
++                    curve.insertSpace();
++		}
++            }
++	}
++        curve.curvepreedit = false;
++    }
++
++    function log(message) { curve.log(message); }
++
++    /* --- okboard end --- */
+ }
