@@ -107,19 +107,18 @@ auto() {
     die "No relevant patch found"
 }
 
-   install() {
-       [ "$(id -u)" = 0 ] || die "'install' option must be called as root"
-       ROOT=1
-       auto
-   }
+install() {
+    [ "$(id -u)" = 0 ] || die "'install' option must be called as root"
+    ROOT=1
+    auto
+}
 
 
-   case "${1:-}" in
-       create) create ;;
-       apply) apply "$2" ;;
-       check) check ;;
-       install) install ;;
-       auto) auto ;;
-       *) usage ;;
-   esac
-
+case "${1:-}" in
+    create) create ;;
+    apply) apply "$2" ;;
+    check) check ;;
+    install) install ;;
+    auto) auto ;;
+    *) usage ;;
+esac
