@@ -4,3 +4,6 @@ X-Nemo-Application-Type=silica-qt5
 Name=OKboard
 Icon=okboard
 Exec=okboard-settings
+
+[X-Sailjail]
+Sandboxing=Disabled
