@@ -1,6 +1,6 @@
 Name:       okboard-full
 Summary:    OKboard (Jolla magic keyboard)
-Version:    0.6.35
+Version:    0.6.36
 Release:    1
 Group:      System/GUI/Other
 License:    BSD-like + LGPLv2.1
@@ -31,6 +31,7 @@ Conflicts:  okb-engine
 %define share_dir %{_datadir}/okboard
 %define plugin_dir %{_libdir}/maliit/plugins
 %define bin_dir %{_bindir}
+%define home_dir /home
 
 %description
 OKboard maliit plugin and simple settings application.
@@ -128,7 +129,7 @@ cp -r patches %{buildroot}/%{share_dir}
 popd
 
 %post
-rm -f /home/nemo/.config/maliit.org/server.conf
+find ${home_dir}/ -xdev -mindepth 2 -maxdepth 2 -type d -name .config | sed -r 's=$=/maliit.org/server.conf=' | xargs -r rm -f || true
 killall maliit-server 2>/dev/null || true
 killall okboard-settings 2>/dev/null || true
 rm -f %{plugin_dir}/okboard.qml  # obsolete plugin name
@@ -153,7 +154,7 @@ fi
 
 %postun
 if [ $1 = 0 ] ; then
-    rm -f /home/nemo/.config/maliit.org/server.conf
+    find ${home_dir}/ -xdev -mindepth 2 -maxdepth 2 -type d -name .config | sed -r 's=$=/maliit.org/server.conf=' | xargs -r rm -f || true
     killall maliit-server 2>/dev/null || true
     killall okboard-settings 2>/dev/null || true
 fi
