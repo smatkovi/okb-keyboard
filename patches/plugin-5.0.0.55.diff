@@ -1,0 +1,116 @@
+--- /usr/lib/maliit/plugins/jolla-keyboard.qml	2024-10-02 02:00:00.000000000 +0200
++++ plugin/okboard.qml	2025-02-01 19:32:14.224652390 +0100
+@@ -41,6 +41,8 @@
+ import Nemo.DBus 2.0
+ import org.nemomobile.systemsettings 1.0
+ 
++import eu.cpbm.okboard 1.0 // okboard
++
+ SilicaControl {
+     id: canvas
+ 
+@@ -64,6 +66,39 @@
+ 
+     property string currentLayout: previousLayoutConfig.value
+ 
++    /* --- okboard begin --- */
++    property bool showPredictionList: keyboard.layout && !keyboard.layout.splitActive && (keyboard.curvepreedit || keyboard.curveerror)
++    property InputHandler okbSaveInputHandler
++    property Component okbSaveTopItem
++    property string configurationKey: keyboard.language + ':' + keyboard.rotation + ':' + keyboard.mode
++
++    onShowPredictionListChanged: {
++        updatePredictionList();
++    }
++
++    onConfigurationKeyChanged: {
++        keyboard.updateCurveContext(keyboard.language, keyboard.mode);
++    }
++
++    function updatePredictionList() {
++        var currentInputHandler = keyboard.inputHandler;
++	if (currentInputHandler) {
++	    if (currentInputHandler.topItem != curvePredictionList) {
++		// backup original InputHandler topItem because we will need to revert to this
++		// one when we no longer need to display the swipe candidate list
++		okbSaveTopItem = currentInputHandler.topItem
++		okbSaveInputHandler = currentInputHandler
++	    }
++
++	    if (showPredictionList) {
++		currentInputHandler.topItem = curvePredictionList
++	    } else if (okbSaveTopItem) {
++		currentInputHandler.topItem = okbSaveTopItem  // revert to original topItem
++	    }
++	}
++    }
++    /* --- okboard end --- */
++
+     palette {
+         colorScheme: editorPalette.colorScheme
+         highlightColor: editorPalette.highlightColor
+@@ -321,7 +356,16 @@
+         effect: ThemeEffect.PressWeak
+     }
+ 
+-    KeyboardBase {
++    /* --- okboard begin --- */
++    PredictList {
++        id: curvePredictionList
++    }
++    VerticalPredictList {
++        id: curveVerticalPredictionList
++    }
++    /* --- okboard end --- */
++
++    CurveKeyboardBasePatch { // okboard: replaces KeyboardBase from com.jolla
+         id: keyboard
+ 
+         property color popperBackgroundColor: canvas.palette.colorScheme === Theme.LightOnDark
+@@ -368,13 +412,13 @@
+         }
+         layoutChangeAllowed: mode === "common"
+ 
+-        dragThreshold: Theme.startDragDistance * 2
++        dragThreshold: canvas.width // disable keyboard drag for layout switch: Theme.startDragDistance * 2
+ 
+         // Initialize the current index, this binding will be broken in Component.onCompleted
+         // and future updates to the current index will be done in a onActiveLayoutChanged
+         // handler which will only assign a value if there is a valid index for the layout.
+         currentIndex: _layoutModel.filter, Math.max(_layoutModel.getLayoutIndex(_layoutModel.activeLayout), 0)
+-        interactive: mode === "common" && (!layout || layout.allowSwipeGesture)
++        interactive: false // okboard disable layout switch: mode === "common" && (!layout || layout.allowSwipeGesture)
+ 
+         contentItem.visible: keyboard.mode === "common"
+         model: _layoutModel
+@@ -573,8 +617,19 @@
+         }
+ 
+         Loader {
++            /* okboard remove
+             sourceComponent: keyboard.inputHandler && keyboard.layout && keyboard.layout.splitActive
+                              ? keyboard.inputHandler.verticalItem : null
++            */
++	    /* --- okboard begin --- */
++	    // this is ridiculously unreadable but does not work from a function
++            // note: this is only used by multi-finger swipe in split landscape keyboard
++	    sourceComponent: (keyboard.layout && keyboard.layout.splitActive)?(
++		(keyboard.curvepreedit || keyboard.curveerror)?curveVerticalPredictionList:(
++		    keyboard.inputHandler?keyboard.inputHandler.verticalItem:null
++		)
++	    ):null;
++	    /* --- okboard end --- */
+             x: (keyboard.width - width) / 2
+             y: keyboard.height - height
+             width: geometry.middleBarWidth
+@@ -588,8 +643,8 @@
+             y: keyboard.height - height
+             width: keyboard.width
+             height: keyboard.currentLayoutHeight
+-            enabled: keyboard.layout && keyboard.layout.type !== "hwr" && keyboard.interactive
+-                     && _layoutModel.enabledCount > 1
++            enabled: false // okboard no layout switch: keyboard.layout && keyboard.layout.type !== "hwr" && keyboard.interactive
++                     // okboard no layout switch:&& _layoutModel.enabledCount > 1
+             onFinished: closeHintDate.value = Date.now() / 1000 + (2 * 24 * 3600) // Set the close hint date 2 days from now
+             onActiveChanged: if (active) closeHintDate.value = 0 // Clear the other hint when this one is active
+         }
