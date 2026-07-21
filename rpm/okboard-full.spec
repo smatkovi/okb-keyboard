@@ -1,6 +1,8 @@
-Name:       okboard-full
+Name:       okboard
+Obsoletes:  okboard-experimental <= 0.6.38
+Obsoletes:  okboard-full <= 0.6.38
 Summary:    OKboard (Jolla magic keyboard)
-Version:    0.6.38
+Version:    0.6.39
 Release:    1
 Group:      System/GUI/Other
 License:    BSD-like + LGPLv2.1
@@ -139,6 +141,12 @@ if ! %{share_dir}/patch.sh install > %{share_dir}/install.log 2>&1 ; then
     exit 1
 fi
 
+
+%triggerpostun -- okboard-experimental, okboard-full
+# re-run keyboard integration: the obsoleted package's %%preun (run after our
+# %%post in the same transaction) deletes okboard-plugin-patch.qml on erase
+killall maliit-server 2>/dev/null || true
+%{share_dir}/patch.sh install >> %{share_dir}/install.log 2>&1 || true
 
 %preun
 rm -f %{share_dir}/install.log %{share_dir}/install.err
