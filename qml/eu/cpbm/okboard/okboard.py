@@ -458,6 +458,44 @@ class Okboard:
         self.log("Settings: set backtracking", value)
         self.set_cf("backtrack", value is True)
 
+    def list_languages(self):
+        """ languages installed for okboard (for the settings UI) """
+        import glob
+        langs = set()
+        for pat, cut in (("/usr/share/okboard/*.tre.gz", 7),
+                         (os.path.join(self.local_dir, "*.tre"), 4)):
+            for f in glob.glob(pat):
+                langs.add(os.path.basename(f)[:-cut])
+        return sorted(langs)
+
+    def add_user_word(self, lang, word, count = 10):
+        """ add a word to the user dictionary of a given language """
+        import time
+        from language_model import word2letters
+        word = (word or "").strip()
+        if not word: return "empty word"
+        letters = word2letters(word)
+        if not letters: return "no usable letters in '%s'" % word
+        # the keyboard keeps the user dictionary in memory and writes it
+        # back when it exits -> stop it BEFORE appending, or we lose the word
+        import sys
+        if "maliit" not in os.path.basename(sys.argv[0] or ""):
+            os.system("killall maliit-server 2>/dev/null")
+            time.sleep(0.5)
+
+        path = os.path.join(self.local_dir, "%s-user.txt" % lang)
+        try:
+            if os.path.exists(path):
+                with open(path, "r") as f:
+                    for line in f:
+                        if line.split(" ")[0] == word:
+                            return "'%s' already known" % word
+            with open(path, "a") as f:
+                f.write("%s %s %d %d\n" % (word, letters, count, int(time.time())))
+        except Exception as e:
+            return "error: %s" % e
+        return "added '%s' to %s" % (word, lang)
+
     def stg_set_wpm(self, value):
         self.log("Settings: set WPM display", value)
         self.set_cf("show_wpm", value is True)

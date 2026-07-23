@@ -24,6 +24,14 @@ ApplicationWindow {
 
         py.importModule('okboard', function(result) {
             console.log('imported python module');
+            py.call("okboard.k.list_languages", [], function(langs) {
+                if (langs && langs.length > 0) {
+                    tf_lang.text = langs[0];
+                    tf_lang.description = "installed: " + langs.join(", ");
+                } else {
+                    tf_lang.description = "no languages found";
+                }
+            });
 
             py.call("okboard.k.stg_get_settings", [ ], function(result) {
                 pref_log = result["log"];
@@ -204,6 +212,41 @@ ApplicationWindow {
                         }
                     }
 
+
+                    SectionHeader {
+                        text: "Dictionary"
+                    }
+
+                    TextField {
+                        id: tf_lang
+                        width: parent.width
+                        label: "Language code"
+                        placeholderText: "e.g. de"
+                        description: "loading ..."
+                    }
+
+                    TextField {
+                        id: tf_word
+                        width: parent.width
+                        placeholderText: "Word to add"
+                        label: "New dictionary word"
+                        EnterKey.onClicked: bt_add.clicked(null)
+                    }
+
+                    Button {
+                        id: bt_add
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "Add to dictionary"
+                        enabled: tf_word.text.length > 0
+                        onClicked: {
+                            py.call("okboard.k.add_user_word",
+                                    [ tf_lang.text.trim(), tf_word.text ], function(result) {
+                                notification.previewBody = result;
+                                notification.publish();
+                                tf_word.text = "";
+                            });
+                        }
+                    }
 
                     SectionHeader {
                         text: "Feedback"
