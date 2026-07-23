@@ -413,7 +413,7 @@ Canvas {
             start_time = now;
         }
 
-        py.call("okboard.k.set_context", [ layout, orientation ]);  // this triggers predict db loading
+        py.call_sync("okboard.k.set_context", [ layout, orientation ]);  // this triggers predict db loading
         if (_get_config) {
             py.call("okboard.k.get_config", [ true ], function(result) {
                 apply_configuration(result);
