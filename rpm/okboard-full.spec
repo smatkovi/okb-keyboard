@@ -3,7 +3,7 @@ Obsoletes:  okboard-experimental <= 0.6.38
 Obsoletes:  okboard-full <= 0.6.38
 Summary:    OKboard (Jolla magic keyboard)
 Version:    0.6.39
-Release:    1
+Release:    4
 Group:      System/GUI/Other
 License:    BSD-like + LGPLv2.1
 URL:        http://projects.tuxfamily.org/?do=group;name=okboard
